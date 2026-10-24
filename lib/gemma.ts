@@ -1,5 +1,5 @@
 import sharp from "sharp";
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, ThinkingLevel } from "@google/genai";
 import { z } from "zod";
 import { draftSchema, validate } from "./model";
 export const parseInput = z.object({
@@ -42,21 +42,34 @@ export async function parseGemma(input: z.infer<typeof parseInput>) {
             parts: [...parts, ...(correction ? [{ text: correction }] : [])],
           },
         ],
-        config: { httpOptions: { timeout: 60000 } },
+        config: {
+          httpOptions: { timeout: 60000 },
+          thinkingConfig: { thinkingLevel: ThinkingLevel.MINIMAL },
+        },
       })
       .catch((e: unknown) => {
         const status =
           typeof e === "object" && e !== null && "status" in e
             ? Number(e.status)
             : 0;
+        const name = e instanceof Error ? e.name : "UnknownError";
+        const timedOut =
+          /timeout|abort/i.test(name) ||
+          (e instanceof Error && /timeout|timed out|aborted/i.test(e.message));
         throw Error(
-          status === 429
-            ? "Gemma rate limited. Wait and retry."
-            : status === 404
-              ? "Configured Gemma 4 model unavailable for this account. Verify model access."
-              : status === 401 || status === 403
-                ? "Gemma authorization failed. Check the server API key and model permissions."
-                : "Gemma request failed or timed out. Check connectivity and model access; no workflow was executed.",
+          timedOut
+            ? "Gemma took longer than 60 seconds. Try fewer tasks or a smaller image, then retry. No workflow was executed."
+            : status === 400
+              ? "Gemma rejected the request (400). Check image format and API key configuration; try a short typed input."
+              : status === 500 || status === 503
+                ? `Gemma service temporarily unavailable (${status}). Retry shortly; no workflow was executed.`
+                : status === 429
+                  ? "Gemma rate limited. Wait and retry."
+                  : status === 404
+                    ? "Configured Gemma 4 model unavailable for this account. Verify model access."
+                    : status === 401 || status === 403
+                      ? "Gemma authorization failed. Check the server API key and model permissions."
+                      : "Gemma request failed or timed out. Check connectivity and model access; no workflow was executed.",
         );
       });
     try {

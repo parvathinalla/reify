@@ -15,8 +15,6 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import {
-  ArrowUpRight,
-  Layers,
   Workflow as WorkflowIcon,
   ListTodo,
   FilePenLine,
@@ -189,22 +187,14 @@ export default function Home() {
             </span>
           </div>
         </div>
-        <div className="steps">
-          <span>01 CREATE</span>
-          <span>→ 02 UNDERSTAND</span>
-          <span>→ 03 CLARIFY</span>
-          <span>→ 04 PLAN</span>
-          <span>→ 05 EXECUTE & VERIFY</span>
-        </div>
         {error && (
           <div className="error" role="alert">
             {error}
           </div>
         )}
         {!w ? (
-          <div className="grid">
+          <div>
             <section className="panel">
-              <div className="eyebrow">01 / Capture your intent</div>
               <h2>Start with what you have.</h2>
               <div className="tabs">
                 {(
@@ -368,68 +358,6 @@ export default function Home() {
               <p className="muted">
                 Source content is sent to Google only when you select Gemma
                 parsing. Images are not saved to disk.
-              </p>
-            </section>
-            <section className="panel">
-              <div className="eyebrow">A small plan. A real outcome.</div>
-              <h2>Get the group into a study room.</h2>
-              <p>
-                Find a room. Ask your people. Reserve only when everyone agrees.
-                See the proof.
-              </p>
-              <div className="summary">
-                <div className="row">
-                  <Layers color="#b297ff" />
-                  <b>One workflow, every dependency</b>
-                </div>
-                <p>
-                  Your plan stays visible. Uncertain details become questions.
-                  Actions wait for your say-so.
-                </p>
-                <div className="row">
-                  <span className="badge">6 connected tasks</span>
-                  <span className="badge">3 approval gates</span>
-                </div>
-              </div>
-              <div style={{ marginTop: 26 }}>
-                {(["todo", "flowchart", "rough_notes"] as const).map((f) => (
-                  <div className="task" key={f}>
-                    <div className="row between">
-                      <div>
-                        <b>
-                          {f === "todo"
-                            ? "Study-room list"
-                            : f === "flowchart"
-                              ? "A branching plan"
-                              : "Scattered study notes"}
-                        </b>
-                        <p className="muted">
-                          Explicit fixture · simulated messages · persisted room
-                          portal
-                        </p>
-                      </div>
-                      <button
-                        aria-label={`Try ${f} example`}
-                        onClick={() => {
-                          setFormat(f);
-                          setText(samples[f]);
-                          void request("/api/parse", {
-                            format: f,
-                            medium: "typed",
-                            fixture: true,
-                            text: samples[f],
-                          });
-                        }}
-                      >
-                        <ArrowUpRight size={18} />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <p className="muted">
-                Fixtures demonstrate the approval engine. They do not parse your
-                source. {health?.persistence}
               </p>
             </section>
           </div>

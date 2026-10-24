@@ -10,7 +10,13 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "test": "vitest run",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "setup": "node scripts/setup.cjs",
+    "launch": "node scripts/launch.cjs",
+    "doctor": "node scripts/doctor.cjs",
+    "check:secrets": "node scripts/check-secrets.cjs",
+    "check:gemma": "node --env-file-if-exists=.env.local scripts/check-gemma.cjs",
+    "check": "npm run lint && npm run typecheck && npm test && npm run build"
   },
   "dependencies": {
     "@google/genai": "latest",
@@ -34,5 +40,8 @@
     "tailwindcss": "^4.0.0",
     "typescript": "^5.9.0",
     "vitest": "latest"
+  },
+  "engines": {
+    "node": ">=24 <25"
   }
 }

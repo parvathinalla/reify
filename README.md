@@ -1,60 +1,117 @@
-# Reify
+<div align="center">
 
-From thought to action. A Windows-friendly Next.js hackathon application that turns to-do lists, flowcharts and rough notes into reviewable workflows.
+# REIFY
+### From thought to action.
 
-## Run locally (PowerShell or macOS)
+Turn to-do lists, flowcharts and rough notes into structured workflows you can understand, edit and approve.
 
-Requires Node 24 LTS and npm. From this directory:
+[Installation](docs/INSTALLATION.md) · [User guide](docs/USER_GUIDE.md) · [Mac handoff](docs/MAC_HANDOFF.md) · [Test evidence](docs/TEST_REPORT.md)
 
-```sh
-npm ci
-```
+[![Quality checks](https://github.com/parvathinalla/reify/actions/workflows/quality.yml/badge.svg)](https://github.com/parvathinalla/reify/actions/workflows/quality.yml)
+![Node](https://img.shields.io/badge/Node.js-24_LTS-339933?logo=nodedotjs&logoColor=white)
+![License](https://img.shields.io/badge/license-MIT-7c3aed)
 
-PowerShell: `Copy-Item .env.example .env.local`
+</div>
 
-macOS: `cp .env.example .env.local`
+Reify is a general workflow product: capture an intention, surface missing information, review dependencies, approve exact actions, and inspect evidence. Study-room coordination is a controlled regression demo, not the product's entire purpose.
 
-```sh
-npm run dev
-```
+**Current release:** real Gemma 4 text parsing has succeeded locally. Input and workflow editing are implemented. Execution is a labeled local demo. The official Twinly adapter exists, but real Mac execution is not yet connected or verified. A key alone does not enable live actions.
 
-Open http://127.0.0.1:3000. Choose **Try todo example**, select room availability before starting, enter a future ISO date with timezone offset, apply answers, advance, approve each exact action, advance again, inject fictional yes/no/maybe replies, and inspect evidence. Refresh the separate room portal after booking.
+## Start in three commands
 
-All execution is currently **demo only**. The fixture is explicit and never interprets uploaded content. No real person is contacted. Room reservations are actual local persisted records in a fictional portal. **Gemma 4 live inference and Twinly Mac execution have not been verified on this machine.**
-
-## Real input parsing
-
-Put `GEMINI_API_KEY` in `.env.local` on the server, restart, then use **Understand with Gemma 4**. The server uses `@google/genai` and `gemma-4-26b-a4b-it` (or the allowlisted `gemma-4-31b-it`). There is no Gemini model fallback. Typed input, image input for all three formats, and a basic flowchart drawing canvas share one Zod workflow schema. Unknown arrows, dates and contacts should produce clarification questions. Schema/DAG validation rejects malformed output, with at most one repair call.
-
-JPEG/PNG/WebP uploads are checked by size, signature and decoder, capped at 10 MB / 40 megapixels, resized and converted to WebP server-side. Photos go to Google only for real parsing; images are not persisted. Typed samples under `public/demo` are original illustrations, not claims of real handwriting recognition. Test handwritten photos yourself with a configured key.
-
-Run `node --env-file-if-exists=.env.local scripts/check-gemma.cjs` to test actual text and sample-image connectivity. Only successful calls write model/medium/timestamp evidence; response contents and keys are not logged.
-
-## Review and execution
-
-Task forms edit titles, prerequisite IDs and exact JSON inputs. Connect graph handles to add edges; select edges and Delete to remove them. Complete-plan JSON editing also supports kinds, conditions, questions and ordering. All edits are server validated and invalidate approvals. Execution already submitted locks plan editing: create a new workflow to change it safely. Generic Gemma clarification reinterprets the saved draft plus user answers and returns a diff; this path still needs live model testing.
-
-Conditions use allowlisted all/any predicates and explicit yes/no/unknown branches. Unknown and missing replies cannot book. Demo inventory comes from an explicit scenario, not LLM availability claims. Independent tasks run at most two per advance. Booking enters `verifying`; a later request rereads persisted state and checks its confirmation before completion. Exact notifications contain the stored confirmation reference. No automatic retries of side effects are enabled.
-
-## Checks
+Install **[Node.js 24 LTS](https://nodejs.org/)** and **[Git](https://git-scm.com/downloads)** first. Use PowerShell, Terminal, or VS Code:
 
 ```sh
-npm run lint
-npm run typecheck
-npm test
-npm run build
-npx playwright install chromium
-npm run test:e2e
+git clone https://github.com/parvathinalla/reify.git
+cd reify
+npm run launch
 ```
 
-See `docs/TEST_REPORT.md` for actual results, limitations and screenshot evidence. `docs/MAC_HANDOFF.md` covers sponsor integration. The original assignment is preserved in `docs/BUILD_SPEC.md`.
+Open **http://127.0.0.1:3000**. Keep the terminal open; press Ctrl+C to stop.
 
-## Hosting and privacy limits
+The launcher installs exact lockfile dependencies on first run, creates private .env.local if missing, and starts Next.js. Later launches reuse prepared dependencies until the lockfile changes. Existing keys are preserved. No global npm packages, Python, WSL or database are needed.
 
-Local atomic JSON storage is suitable for a single Node process only. HTTP-only SameSite session cookies isolate workflows; local files are unencrypted development data. Do not enter private content in a shared installation. `.data`, environment files and test artifacts are ignored by Git. No secrets use `NEXT_PUBLIC_*`.
+**Using the ZIP?** Extract it, open a terminal in the folder containing package.json, and run npm run launch.
 
-On Vercel, writes fail closed and the landing page is a read-only sandbox. **A durable production database adapter and production account authentication remain release work.** No deployed URL or GitHub remote was provided. Do not enable public live execution using local files. The Twinly adapter is contract tested against mocked HTTP and deliberately disconnected from mutation routes until a teammate verifies Mac readiness, job reconciliation, consent and independent evidence.
+### Connect Gemma in one edit
 
-## Credits and license
+Open .env.local and add your own GEMINI_API_KEY from [Google AI Studio](https://aistudio.google.com/apikey). Keep GEMMA_MODEL set to gemma-4-26b-a4b-it. Save, stop the server, and run npm run launch again. Choose a format, enter text/upload an image, and click **Understand with Gemma 4**.
 
-MIT. Built with Next.js, React, Tailwind CSS, React Flow, Zod, Lucide and the Google GenAI SDK; dependency licenses remain with their authors. `docs/twinly-openapi.yaml` is the sponsor's external reference, retrieved from its official example repository; its upstream licensing applies. Reify application code is original work in this workspace.
+Put real keys only in .env.local, never .env.example, chat or GitHub. The private file is ignored by Git. Verify access with npm run check:gemma when ready; it makes real text/image requests and can consume quota. Without a key, the UI and deterministic fixture tests remain usable; interpretation of your source requires model access.
+
+## Capability matrix
+
+| Capability | Status |
+|---|---|
+| Typed lists and rough notes | Implemented; real Gemma text parsing verified locally |
+| Images for all formats | Validation, safe preparation and multimodal SDK path implemented; real image inference still needs verification |
+| Flowchart canvas | Nodes, arrows, branch labels and canonical parsing input |
+| Clarification | Questions and answer-driven revisions; domain-specific completeness still needs stronger validation |
+| Editable workflows | Task forms, dependency edges, complete-plan editing and DAG validation |
+| Human approvals | Exact payload/version/digest; edits invalidate approvals |
+| Deterministic execution | Local demo scheduler with prerequisites and yes/no/unknown conditions |
+| Room verification example | Fictional inventory, simulated replies and persisted confirmation checks |
+| Twinly | Official adapter and mocked HTTP tests; live mutations disabled |
+| Desktop platforms | Cross-platform Node launcher; local Windows evidence; CI matrix for Linux/Windows/macOS |
+| Public live execution | Not enabled; durable production storage and account authentication remain required |
+
+See [the user guide](docs/USER_GUIDE.md) and [roadmap](docs/ROADMAP.md). Reify does not currently promise arbitrary autonomous actions across all apps.
+
+## How it works
+
+```mermaid
+flowchart LR
+  A[Text / image / canvas] --> B[Gemma 4]
+  B --> C[Validated draft]
+  C --> D[Clarify and edit]
+  D --> E[Approve exact actions]
+  E --> F[Dependency scheduler]
+  F --> G[Demo adapter today]
+  G --> H[Verified evidence]
+  T[Twinly adapter] -. Pending live integration .-> F
+```
+
+Gemma interprets; the server owns approvals, states and evidence. Understand does not execute actions. Missing/uncertain replies are not agreement. Credentials stay server-side.
+
+## Useful commands
+
+| Command | Purpose |
+|---|---|
+| npm run launch | Prepare if needed and start locally |
+| npm run setup | Reinstall exact dependencies; preserve private settings |
+| npm run doctor | Safe configuration booleans; no keys/provider calls |
+| npm run check:gemma | Actual text/image connectivity; requires a key |
+| npm run check | Lint, typecheck, unit tests and production build |
+| npm run test:e2e | Fixture-based browser/API checks |
+| npm run check:secrets | Scan publishable files and local Git history |
+
+Install Chromium once before browser tests: npx playwright install chromium.
+
+## Evidence and documentation
+
+[TEST_REPORT](docs/TEST_REPORT.md) distinguishes local checks, mocked contracts and live evidence. No unverified provider result is claimed as passing.
+
+<details>
+<summary>See the verified workflow workspace</summary>
+
+![Actual local Reify workspace](docs/evidence-desktop.png)
+
+</details>
+
+| Guide | Contents |
+|---|---|
+| [Installation](docs/INSTALLATION.md) | Quick install, keys, updates and build |
+| [User guide](docs/USER_GUIDE.md) | Input, clarification, graph, approvals and verification |
+| [Troubleshooting](docs/TROUBLESHOOTING.md) | Startup, quotas, keys, ports and Mac readiness |
+| [Architecture](docs/ARCHITECTURE.md) | Schemas, state, trust boundaries and adapters |
+| [Mac handoff](docs/MAC_HANDOFF.md) | Real Twinly setup and verification |
+| [Roadmap](docs/ROADMAP.md) | Work remaining for broad live workflows |
+| [Demo script](docs/DEMO_SCRIPT.md) | Honest three-minute demonstration |
+| [Contributing](CONTRIBUTING.md) | Development and review conventions |
+| [Security](SECURITY.md) | Credentials, local data and reporting |
+
+## Hosting and license
+
+Local .data files support one Node process. Vercel writes fail closed until durable storage and account ownership are implemented. This repository is not a hosted production service; no public application URL is claimed.
+
+[MIT](LICENSE). Built with Next.js, React, TypeScript, Tailwind, React Flow, Zod, Lucide, Sharp, Google GenAI, Vitest and Playwright. Dependency licenses remain with their authors. See [third-party notices](THIRD_PARTY_NOTICES.md) for the sponsor OpenAPI reference and asset attribution.

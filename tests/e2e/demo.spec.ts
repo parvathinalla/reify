@@ -3,9 +3,15 @@ test("study-room happy path through actual browser and API", async ({
   page,
 }) => {
   await page.goto("/");
-  await page
-    .getByRole("button", { name: "Try todo example", exact: true })
-    .click();
+  const seeded = await page.request.post("/api/parse", {
+    data: { format: "todo", medium: "typed", fixture: true },
+  });
+  const workflow = await seeded.json();
+  await page.evaluate(
+    (id) => localStorage.setItem("reify-id", id),
+    workflow.id,
+  );
+  await page.reload();
   await expect(
     page.getByText("A place to think, together", { exact: true }),
   ).toBeVisible();
@@ -72,4 +78,3 @@ test("mobile input controls and upload rejection", async ({ page }) => {
   await expect(page.locator(".error[role=alert]")).toContainText("PNG");
   await page.screenshot({ path: "docs/evidence-mobile.png", fullPage: true });
 });
-

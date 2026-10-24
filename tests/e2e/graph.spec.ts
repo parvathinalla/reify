@@ -3,9 +3,15 @@ test("graph renders six visible nodes and allows task editing", async ({
   page,
 }) => {
   await page.goto("/");
-  await page
-    .getByRole("button", { name: "Try todo example", exact: true })
-    .click();
+  const seeded = await page.request.post("/api/parse", {
+    data: { format: "todo", medium: "typed", fixture: true },
+  });
+  const workflow = await seeded.json();
+  await page.evaluate(
+    (id) => localStorage.setItem("reify-id", id),
+    workflow.id,
+  );
+  await page.reload();
   await expect(page.locator(".react-flow__node")).toHaveCount(6);
   await expect(page.locator(".react-flow__node").first()).toBeVisible();
   await page.locator(".react-flow__node").first().click();

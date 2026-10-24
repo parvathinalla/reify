@@ -1,0 +1,17 @@
+name: Bug report
+description: Report a reproducible Reify issue without private inputs or credentials.
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What happened?
+      description: Include expected behavior and reproducible steps. Never paste keys or private source content.
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, Node version, browser, and whether the workflow used Gemma or an explicit fixture.
+    validations:
+      required: true

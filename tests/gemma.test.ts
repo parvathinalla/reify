@@ -1,6 +1,7 @@
 import { beforeEach, afterEach, describe, it, expect, vi } from "vitest";
 const mock = vi.hoisted(() => ({ generate: vi.fn() }));
 vi.mock("@google/genai", () => ({
+  ThinkingLevel: { MINIMAL: "minimal" },
   GoogleGenAI: class {
     models = { generateContent: mock.generate };
   },
