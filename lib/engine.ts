@@ -1,5 +1,6 @@
 import { createHash, randomUUID } from "node:crypto";
 import { Draft, Workflow, Task, evaluate, validate } from "./model";
+import { requiresActionApproval } from "./capabilities";
 export const digest = (t: Task) =>
   createHash("sha256")
     .update(
@@ -19,6 +20,11 @@ export function create(
 ): Workflow {
   return {
     ...validate(d),
+    tasks: d.tasks.map((t) => ({
+      ...t,
+      status: "pending",
+      requiresApproval: requiresActionApproval(t, mode === "fixture"),
+    })),
     id: randomUUID(),
     version: 1,
     owner,
@@ -31,6 +37,8 @@ export function create(
     audit: [],
     reservations: {},
     submitted: [],
+    outputs: {},
+    jobs: {},
   };
 }
 export function log(w: Workflow, summary: string, taskId?: string) {
@@ -46,10 +54,14 @@ export function approve(
   if (!t || version !== w.version || hash !== digest(t))
     throw Error("Stale approval; review the current action");
   if (
-    !["send_message", "browser_task"].includes(t.kind) ||
+    !requiresActionApproval(t, w.mode === "fixture") ||
     !["pending", "blocked", "awaiting_approval"].includes(t.status)
   )
     throw Error("This task is not awaiting an actionable approval");
+  if (w.submitted.includes(id))
+    throw Error(
+      "This action is already submitted. Handle any provider approval in Twinly; do not resubmit.",
+    );
   w.approvals[id] = {
     digest: hash,
     version,
@@ -57,13 +69,31 @@ export function approve(
     exactTarget: String(t.inputs.recipient ?? t.inputs.target ?? ""),
     exactPayload: JSON.stringify(t.inputs),
     approvedBy: w.owner,
+    ...(w.mode !== "fixture"
+      ? {
+          providerKeyHash: createHash("sha256")
+            .update(process.env.TWINLY_API_KEY ?? "")
+            .digest("hex"),
+        }
+      : {}),
   };
   t.status = "pending";
   log(w, "Exact action approved", id);
 }
-export function edit(w: Workflow, d: Draft) {
-  if (w.submitted.length)
+export function assertEditable(w: Workflow) {
+  if (w.tasks.some((t) => t.status === "running"))
+    throw Error(
+      "Wait for the current text generation to finish before editing.",
+    );
+  if (
+    w.submitted.some(
+      (id) => w.tasks.find((t) => t.id === id)?.kind !== "generate_content",
+    )
+  )
     throw Error("Reset or create a new workflow to edit after execution");
+}
+export function edit(w: Workflow, d: Draft) {
+  assertEditable(w);
   validate(d);
   Object.assign(w, d);
   w.version++;
@@ -71,10 +101,15 @@ export function edit(w: Workflow, d: Draft) {
   w.facts = {};
   w.evidence = [];
   w.reservations = {};
+  w.outputs = {};
+  w.jobs = {};
+  w.submitted = [];
   for (const t of w.tasks) t.status = "pending";
   log(w, "Plan edited; all approvals invalidated");
 }
 export function advance(w: Workflow) {
+  if (w.mode !== "fixture")
+    throw Error("General workflows must use the capability execution engine.");
   if (w.paused) return;
   let count = 0;
   for (const t of w.tasks) {
@@ -152,6 +187,12 @@ export function advance(w: Workflow) {
     }
     if (t.kind === "manual") {
       t.status = "blocked";
+      continue;
+    }
+    if (["generate_content", "twinly_task", "read_messages"].includes(t.kind)) {
+      t.status = "blocked";
+      t.blockReason =
+        "This capability is not part of the explicit room fixture.";
       continue;
     }
     if (t.kind === "send_message" || t.kind === "browser_task") {

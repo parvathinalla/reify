@@ -1,102 +1,222 @@
 import { z } from "zod";
-const jobSchema = z.object({
-  id: z.string(),
-  status: z.enum([
-    "queued",
-    "running",
-    "needs_approval",
-    "done",
-    "failed",
-    "canceled",
-    "expired",
-  ]),
-  result: z.record(z.string(), z.unknown()).nullable().optional(),
-  error: z
-    .object({ code: z.string().optional(), message: z.string().optional() })
-    .nullable()
-    .optional(),
-});
+import {
+  TwinlyFeature,
+  twinlyMeSchema,
+  twinlyJobSchema,
+  featureReadiness,
+  computerActionSchema,
+  screenshotSchema,
+} from "./twinly-contract";
+export class TwinlyError extends Error {
+  constructor(
+    message: string,
+    public status: number,
+    public uncertain: boolean,
+  ) {
+    super(message);
+    this.name = "TwinlyError";
+  }
+}
 export class TwinlyAdapter {
-  private async request(path: string, method = "GET", body?: unknown) {
-    if (!process.env.TWINLY_API_KEY) throw Error("Twinly not configured");
+  private async request(
+    path: string,
+    method = "GET",
+    body?: unknown,
+    timeout = 30000,
+  ) {
+    if (!process.env.TWINLY_API_KEY)
+      throw new TwinlyError("Twinly not configured", 401, false);
     const base =
       process.env.TWINLY_BASE_URL ??
       "https://advktwnedlgnhswpxokg.supabase.co/functions/v1/twinly-api/v1";
     if (new URL(base).protocol !== "https:")
-      throw Error("Twinly requires HTTPS");
-    let r: Response;
+      throw new TwinlyError("Twinly requires HTTPS", 400, false);
+    let response: Response;
     try {
-      r = await fetch(`${base}${path}`, {
+      response = await fetch(base + path, {
         method,
         headers: {
           Authorization: `Bearer ${process.env.TWINLY_API_KEY}`,
           "Content-Type": "application/json",
         },
-        body: body ? JSON.stringify(body) : undefined,
-        signal: AbortSignal.timeout(30000),
+        body: body === undefined ? undefined : JSON.stringify(body),
+        signal: AbortSignal.timeout(timeout),
         cache: "no-store",
       });
     } catch {
-      throw Error(
+      throw new TwinlyError(
         method === "POST"
-          ? "Submission uncertain. Reconcile jobs before any retry."
+          ? "Submission uncertain. Reconcile the existing job before any retry."
           : "Twinly connection timed out",
+        0,
+        method === "POST",
       );
     }
-    if (!r.ok)
-      throw Error(
-        (
-          {
-            402: "Usage exhausted",
-            403: "Permission missing",
-            409: "Mac offline or setup incomplete",
-            429: "Rate limited",
-            503: "Job unverified: reconcile before retry",
-          } as Record<number, string>
-        )[r.status] ?? `Twinly request failed (${r.status})`,
+    if (!response.ok) {
+      const labels: Record<number, string> = {
+        400: "Invalid Twinly request",
+        401: "Twinly key rejected",
+        402: "Twinly usage exhausted",
+        403: "Twinly permission missing",
+        404: "Twinly job or endpoint not found",
+        409: "Twinly Mac offline or setup incomplete",
+        413: "Twinly payload too large",
+        422: "Twinly could not accept this content",
+        429: "Twinly rate limited",
+        503: "Twinly job unverified: reconcile before retry",
+      };
+      throw new TwinlyError(
+        labels[response.status] ?? `Twinly request failed (${response.status})`,
+        response.status,
+        method === "POST" && response.status >= 500,
       );
-    return r.json();
+    }
+    try {
+      return await response.json();
+    } catch {
+      throw new TwinlyError(
+        "Twinly returned an unreadable response. Reconcile any submitted job.",
+        502,
+        method === "POST",
+      );
+    }
   }
   async health() {
-    const data = await this.request("/me");
-    return z
-      .object({
-        mac: z.object({
-          online: z.boolean(),
-          setup: z
-            .record(z.string(), z.union([z.boolean(), z.string()]))
-            .nullable()
-            .optional(),
-        }),
-        can: z.object({ cloud: z.array(z.string()), mac: z.array(z.string()) }),
-      })
-      .parse(data);
+    return twinlyMeSchema.parse(await this.request("/me"));
+  }
+  private async ready(feature: TwinlyFeature) {
+    const state = featureReadiness(await this.health(), feature);
+    if (!state.ready) throw new TwinlyError(state.reason, 409, false);
   }
   async message(to: string, text: string) {
-    await this.ready();
-    return jobSchema.parse(
-      await this.request("/messages?wait=0", "POST", { to, text }),
+    await this.ready("messages_send");
+    return twinlyJobSchema.parse(
+      await this.request("/messages?wait=0", "POST", {
+        to: z.string().min(1).max(128).parse(to),
+        text: z.string().min(1).max(4000).parse(text),
+      }),
+    );
+  }
+  async readMessages(withContact: string, limit = 20) {
+    await this.ready("messages_read");
+    return twinlyJobSchema.parse(
+      await this.request(
+        `/messages?with=${encodeURIComponent(z.string().min(1).max(128).parse(withContact))}&limit=${z.number().int().min(1).max(50).parse(limit)}&wait=0`,
+      ),
     );
   }
   async task(prompt: string, output_schema: Record<string, unknown>) {
-    await this.ready();
-    return jobSchema.parse(
-      await this.request("/tasks?wait=0", "POST", { prompt, output_schema }),
+    await this.ready("tasks");
+    return twinlyJobSchema.parse(
+      await this.request("/tasks?wait=0", "POST", {
+        prompt: z.string().min(1).max(4000).parse(prompt),
+        output_schema,
+      }),
     );
   }
+  async call(to: string, goal: string, say?: string) {
+    await this.ready("calls");
+    return twinlyJobSchema.parse(
+      await this.request("/calls?wait=0", "POST", {
+        to: z.string().min(1).max(128).parse(to),
+        goal: z.string().min(1).max(2000).parse(goal),
+        ...(say ? { say: z.string().max(1000).parse(say) } : {}),
+      }),
+    );
+  }
+  async speak(text: string) {
+    await this.ready("voice");
+    return twinlyJobSchema.parse(
+      await this.request("/voice/speak?wait=0", "POST", {
+        text: z.string().min(1).max(600).parse(text),
+      }),
+    );
+  }
+  async image(prompt: string, shape: "square" | "wide" | "tall" = "square") {
+    await this.ready("images");
+    return z
+      .object({
+        data: z
+          .array(
+            z.object({
+              b64_json: z.string().max(14000000),
+              mime: z.enum(["image/png", "image/jpeg", "image/webp"]),
+            }),
+          )
+          .min(1)
+          .max(4),
+      })
+      .parse(
+        await this.request(
+          "/images",
+          "POST",
+          {
+            prompt: z.string().min(1).max(2000).parse(prompt),
+            shape: z.enum(["square", "wide", "tall"]).parse(shape),
+          },
+          125000,
+        ),
+      );
+  }
+  async chat(prompt: string) {
+    await this.ready("chat");
+    return z
+      .object({
+        choices: z
+          .array(
+            z.object({ message: z.object({ content: z.string().min(1) }) }),
+          )
+          .min(1),
+      })
+      .parse(
+        await this.request(
+          "/chat/completions",
+          "POST",
+          {
+            model: "twinly-core",
+            messages: [
+              {
+                role: "user",
+                content: z.string().min(1).max(20000).parse(prompt),
+              },
+            ],
+            reasoning_effort: "minimal",
+            stream: false,
+            max_tokens: 4096,
+          },
+          125000,
+        ),
+      );
+  }
+  async nextAction(goal: string, screenshot: string) {
+    await this.ready("computer");
+    return z
+      .object({ action: computerActionSchema, blocked: z.string().optional() })
+      .parse(
+        await this.request(
+          "/computer/next-action",
+          "POST",
+          {
+            goal: z.string().min(1).max(2000).parse(goal),
+            screenshot: screenshotSchema.parse(screenshot),
+          },
+          125000,
+        ),
+      );
+  }
   async poll(id: string) {
-    return jobSchema.parse(
-      await this.request(`/jobs/${encodeURIComponent(id)}`),
+    return twinlyJobSchema.parse(
+      await this.request(
+        `/jobs/${encodeURIComponent(z.string().uuid().parse(id))}`,
+      ),
     );
   }
   async cancel(id: string) {
-    return jobSchema.parse(
-      await this.request(`/jobs/${encodeURIComponent(id)}/cancel`, "POST"),
+    return twinlyJobSchema.parse(
+      await this.request(
+        `/jobs/${encodeURIComponent(z.string().uuid().parse(id))}/cancel`,
+        "POST",
+      ),
     );
   }
-  private async ready() {
-    const me = await this.health();
-    if (!me.mac.online) throw Error("Twinly Mac offline");
-  }
 }
-// Adapter is intentionally not wired to public mutation routes until Mac verification.

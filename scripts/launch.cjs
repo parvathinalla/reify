@@ -11,7 +11,7 @@ try {
     `\nReify · http://127.0.0.1:${port}\nKeep this terminal open. Press Ctrl+C to stop.`,
   );
   console.log(
-    "Gemma parsing needs your server-side key. Twinly execution remains disabled pending live integration.\n",
+    "Gemma needs your server-side key. Twinly needs verified setup and exact approvals; see docs/TWINLY_SETUP.md.\n",
   );
   const child = spawn(
     process.execPath,

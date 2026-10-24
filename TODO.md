@@ -77,3 +77,12 @@ Core demo: upload handwritten study-room planning notes → extract tasks → an
 
 ## Current status
 Local Next.js implementation is now present. See docs/TEST_REPORT.md for actual checks and remaining live-provider/deployment work. The shared chat establishes the product workflow and stack, but does not provide a recovered pixel-level visual specification. Use a coherent professional interface consistent with the workflow unless additional design references are provided.
+
+## Local-first general capability milestone
+- [x] General workflow scheduler and real Gemma text artifacts; room fixture kept separate.
+- [x] Eight documented Twinly API families, configuration status, approval and local job lifecycle.
+- [x] Required missing-action fields and recipient/time-bound reply handling.
+- [x] Local quality checks: 67 unit tests, 11 browser/API checks and 12 official-mock checks.
+- [x] Simple Ajit configuration guide in docs/TWINLY_SETUP.md.
+- [ ] Ajit verifies every configured Twinly feature on the real Mac with consenting contacts.
+- [ ] Production hosting: durable database, account isolation and distributed execution protections. Local-first is the current authorized target.

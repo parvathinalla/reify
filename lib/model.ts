@@ -5,7 +5,9 @@ export const conditionSchema = z.object({
   branch: z.enum(["yes", "no", "unknown"]).default("yes"),
 });
 export const taskSchema = z.object({
-  id: z.string().min(1).max(100),
+  id: z
+    .string()
+    .regex(/^(?!(?:constructor|prototype)$)[A-Za-z0-9][A-Za-z0-9_-]{0,99}$/),
   title: z.string().min(1).max(200),
   description: z.string().max(2000).default(""),
   kind: z.enum([
@@ -14,11 +16,20 @@ export const taskSchema = z.object({
     "browser_task",
     "conditional",
     "manual",
+    "generate_content",
+    "twinly_task",
+    "read_messages",
+    "call",
+    "speak",
+    "generate_image",
+    "twinly_chat",
+    "computer_action",
   ]),
   dependsOn: z.array(z.string()).max(30),
   condition: conditionSchema.optional(),
   inputs: z.record(z.string(), z.unknown()).default({}),
   requiresApproval: z.boolean().default(true),
+  blockReason: z.string().max(500).optional(),
   status: z
     .enum([
       "pending",
@@ -66,7 +77,7 @@ export type Workflow = Draft & {
   version: number;
   owner: string;
   sourceText?: string;
-  mode: "fixture" | "gemma";
+  mode: "fixture" | "gemma" | "manual";
   paused: boolean;
   demoScenario: "happy" | "no_room";
   approvals: Record<
@@ -79,13 +90,15 @@ export type Workflow = Draft & {
       exactPayload: string;
       approvedBy: string;
       consumedAt?: string;
+      providerKeyHash?: string;
     }
   >;
   facts: Record<string, boolean | "unknown">;
   evidence: {
     taskId: string;
-    provider: "demo";
-    verification: "verified";
+    provider: "demo" | "gemma" | "twinly";
+    verification:
+      "verified" | "generated" | "reported" | "inconclusive" | "user_confirmed";
     summary: string;
     externalId: string;
     checkedAt: string;
@@ -96,6 +109,37 @@ export type Workflow = Draft & {
     { reference: string; room: string; date: string }
   >;
   submitted: string[];
+  outputs?: Record<
+    string,
+    {
+      text: string;
+      model: string;
+      sha256: string;
+      createdAt: string;
+      mime?: string;
+      data?: string;
+    }
+  >;
+  jobs?: Record<
+    string,
+    {
+      id: string;
+      digest: string;
+      state:
+        "running" | "completed" | "failed" | "awaiting_provider" | "uncertain";
+      startedAt: string;
+      error?: string;
+      provider?: "gemma" | "twinly";
+      feature?: import("./twinly-contract").TwinlyFeature;
+      externalId?: string;
+      providerStatus?: string;
+      providerKeyHash?: string;
+      sentAt?: string;
+      resolvedRecipient?: string;
+      replyJobId?: string;
+      replySubmitting?: boolean;
+    }
+  >;
 };
 export function validate(d: Draft) {
   const ids = new Set(d.tasks.map((t) => t.id));
@@ -116,6 +160,8 @@ export function validate(d: Draft) {
     if (q.taskId && !ids.has(q.taskId)) throw Error("Unknown question task");
   });
   for (const t of d.tasks) {
+    if (t.kind === "conditional" && !t.condition)
+      throw Error("A conditional step requires a structured predicate.");
     if (t.condition)
       for (const f of t.condition.facts)
         if (!/^[\w-]+\.(available|confirmed_yes)$/.test(f))

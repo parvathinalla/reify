@@ -1,10 +1,10 @@
 import { Draft } from "./model";
 export const samples = {
-  todo: "Find a study room tomorrow. Ask Ravi and Priya if they can join at 4 PM. If both agree and a room is available, book it and send details.",
+  todo: "Draft a proposal for a campus recycling drive. Ask me about the audience and goal first. Then create a checklist. Do not send or publish anything.",
   flowchart:
-    "Find room → Ask Ravi + Ask Priya → IF both yes AND room available → Book → Send details. ELSE stop.",
+    "Read supplied notes → Summarize the main ideas → Draft an email → Request approval before sending.",
   rough_notes:
-    "Study session? Tomorrow 4pm. Ravi, Priya. Need a quiet room. Only reserve if both say yes. Send confirmation after booking.",
+    "Need a two-week launch plan. Small team. First ask the goal and audience. Turn ideas into milestones, then draft an announcement. Nothing published yet.",
 };
 export function fixture(
   format: Draft["source"]["format"],

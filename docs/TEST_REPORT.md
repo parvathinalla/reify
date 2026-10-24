@@ -61,3 +61,19 @@ Final installer evidence: clean Windows clone installed via npm run launch -- --
 
 The first GitHub matrix run failed at npm ci: npm 11.19 detected missing optional @emnapi core/runtime entries from the older Windows-generated lockfile. Regenerated the lockfile with npm 11.19 in a directory without node_modules, then passed npm 11.19 ci --dry-run. Remote rerun results are recorded only after actual completion.
 Verified GitHub CI result for source commit c2448a5: ALL THREE PLATFORMS PASS — Ubuntu, Windows and macOS. Each job completed npm ci, secret scanning, lint, typecheck, all 36 unit/contract tests, production build, Chromium installation and all 10 browser/API tests. Run: https://github.com/parvathinalla/reify/actions/runs/40136179830 . The earlier failed run exposed the optional-dependency lockfile problem and is retained in Actions history; it was repaired rather than hidden. No live Twinly or real-image inference claim is implied by these checks.
+
+## General workflows and Twinly local-first milestone (2026-10-24)
+
+Implemented general task parsing and execution, real Gemma text artifacts, server-required action details, per-feature readiness for eight documented Twinly API families, exact consumed approvals, persisted submission claims, bounded concurrency, job polling/cancellation, human-assisted linking of uncertain jobs, identity/time-bound explicit reply classification, private media artifacts and independent user outcome confirmation. Study-room fixtures remain separate from general workflows. Added docs/TWINLY_SETUP.md and an interactive harmless Mac connection-check utility. Default live mode remains off; the utility was checked with --help only, not run to enable live actions.
+
+Local Windows checks completed after material changes:
+- Clean npm ci PASS: 448 installed packages, audit 0 vulnerabilities. Initial attempt failed EPERM because the development server held a native CSS binary; stopped the identified project server and reran successfully.
+- npm run lint PASS; npm run typecheck PASS; npm test PASS: 67 tests across 8 files, including abandoned-claim recovery without external resubmission and existing-job reconciliation.
+- npm run build PASS (Next.js production build).
+- npx playwright install chromium completed; npm run test:e2e PASS: 11 browser/API checks, 33.2 seconds.
+- npm run test:twinly-mock PASS: 12 checks, covering all eight adapter families, approval holds, uncertain submissions without automatic resend and cancellation. Uses pinned official examples commit 3c059afda3d9f46b2960e26ec18754bbb0e08254. The test harness supplies explicit setup flags missing from that older mock; production fails closed when permission flags are absent.
+- npm run check:secrets PASS for publishable files and local Git history before release; no private environment or persisted inputs included.
+
+Actual live Gemma general-workflow smoke evidence: a synthetic community-garden writing request produced two generate_content tasks, then two saved Gemma artifacts, with zero room reservations. This is text-only model evidence, not real image or Twinly evidence.
+
+Not verified in this milestone: real Twinly messages/calls/voice/images/chat/screen tasks, Mac disconnect/approval behavior against the live provider, real handwriting inference, public hosted execution, multi-instance storage or account authentication. Ajit is completing Twinly setup; user chose local setup first. Previous cross-platform CI results above belong to older source commits; current remote results must be read separately.

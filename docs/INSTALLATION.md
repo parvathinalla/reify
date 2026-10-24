@@ -28,7 +28,7 @@ Put credentials in .env.local, never .env.example, GitHub, chat or screenshots. 
 
 ## Twinly on a Mac
 
-Follow [MAC_HANDOFF](MAC_HANDOFF.md). Put the scoped key only in .env.local. Keep EXECUTION_MODE=demo. The adapter exists, but live mutations remain disabled until the required integration is verified. Key presence alone does not enable them.
+Follow [Twinly setup](TWINLY_SETUP.md). Put the scoped key only in .env.local. Start with EXECUTION_MODE=demo. Live execution requires the explicit Mac connection check, current feature permissions, exact approvals and any required consenting-contact/website policies. Key presence alone does not enable it. Keep this setup local while Ajit completes live feature verification.
 
 ## Commands
 

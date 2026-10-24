@@ -16,7 +16,9 @@
     "doctor": "node scripts/doctor.cjs",
     "check:secrets": "node scripts/check-secrets.cjs",
     "check:gemma": "node --env-file-if-exists=.env.local scripts/check-gemma.cjs",
-    "check": "npm run lint && npm run typecheck && npm test && npm run build"
+    "check": "npm run lint && npm run typecheck && npm test && npm run build",
+    "twinly:verify": "node scripts/verify-twinly.cjs",
+    "test:twinly-mock": "node scripts/test-twinly-mock.cjs"
   },
   "dependencies": {
     "@google/genai": "latest",

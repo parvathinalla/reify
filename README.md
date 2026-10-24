@@ -15,7 +15,7 @@ Turn to-do lists, flowcharts and rough notes into structured workflows you can u
 
 Reify is a general workflow product: capture an intention, surface missing information, review dependencies, approve exact actions, and inspect evidence. Study-room coordination is a controlled regression demo, not the product's entire purpose.
 
-**Current release:** real Gemma 4 text parsing has succeeded locally. Input and workflow editing are implemented. Execution is a labeled local demo. The official Twinly adapter exists, but real Mac execution is not yet connected or verified. A key alone does not enable live actions.
+**Current release:** real Gemma 4 parsing and text generation run server-side. General workflows produce saved artifacts and use a validated dependency engine. Eight documented Twinly API families are wired behind per-feature readiness, consent policies, exact approvals and a Mac connection-verification gate. Twinly contract checks use the official mock; live feature verification remains pending with Ajit. A key alone does not enable live actions. The current target is a single-user local setup.
 
 ## Start in three commands
 
@@ -46,12 +46,12 @@ Put real keys only in .env.local, never .env.example, chat or GitHub. The privat
 | Typed lists and rough notes | Implemented; real Gemma text parsing verified locally |
 | Images for all formats | Validation, safe preparation and multimodal SDK path implemented; real image inference still needs verification |
 | Flowchart canvas | Nodes, arrows, branch labels and canonical parsing input |
-| Clarification | Questions and answer-driven revisions; domain-specific completeness still needs stronger validation |
+| Clarification | Model questions plus server-required missing recipients, wording, destinations and booking details |
 | Editable workflows | Task forms, dependency edges, complete-plan editing and DAG validation |
 | Human approvals | Exact payload/version/digest; edits invalidate approvals |
-| Deterministic execution | Local demo scheduler with prerequisites and yes/no/unknown conditions |
+| Deterministic execution | General scheduler with prerequisites, bounded jobs, saved artifacts and yes/no/unknown conditions |
 | Room verification example | Fictional inventory, simulated replies and persisted confirmation checks |
-| Twinly | Official adapter and mocked HTTP tests; live mutations disabled |
+| Twinly | Eight official API families, readiness UI, job polling/cancellation/reconciliation; live feature tests pending |
 | Desktop platforms | Cross-platform Node launcher; local Windows evidence; CI matrix for Linux/Windows/macOS |
 | Public live execution | Not enabled; durable production storage and account authentication remain required |
 
@@ -66,9 +66,9 @@ flowchart LR
   C --> D[Clarify and edit]
   D --> E[Approve exact actions]
   E --> F[Dependency scheduler]
-  F --> G[Demo adapter today]
-  G --> H[Verified evidence]
-  T[Twinly adapter] -. Pending live integration .-> F
+  F --> G[Gemma artifacts or gated Twinly jobs]
+  G --> H[Artifacts and labeled evidence]
+  F --> T[Explicit regression fixture]
 ```
 
 Gemma interprets; the server owns approvals, states and evidence. Understand does not execute actions. Missing/uncertain replies are not agreement. Credentials stay server-side.
@@ -84,8 +84,11 @@ Gemma interprets; the server owns approvals, states and evidence. Understand doe
 | npm run check | Lint, typecheck, unit tests and production build |
 | npm run test:e2e | Fixture-based browser/API checks |
 | npm run check:secrets | Scan publishable files and local Git history |
+| npm run twinly:verify -- --status | Read-only Twinly permission readiness |
+| npm run twinly:verify | Human-approved harmless Mac connection check |
+| npm run test:twinly-mock | Eight families against the pinned official mock |
 
-Install Chromium once before browser tests: npx playwright install chromium.
+Install Chromium once before browser tests: npx playwright install chromium. Ajit's step-by-step configuration and live-verification boundary are in [Twinly setup](docs/TWINLY_SETUP.md).
 
 ## Evidence and documentation
 

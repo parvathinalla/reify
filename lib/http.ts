@@ -19,7 +19,26 @@ export function context(req: NextRequest) {
   return owner;
 }
 export function respond(data: unknown, owner: string) {
-  const r = NextResponse.json(data);
+  let publicData = data;
+  if (
+    data &&
+    typeof data === "object" &&
+    "outputs" in data &&
+    data.outputs &&
+    typeof data.outputs === "object"
+  ) {
+    publicData = {
+      ...data,
+      outputs: Object.fromEntries(
+        Object.entries(data.outputs).map(([id, output]) => {
+          const value = { ...(output as Record<string, unknown>) };
+          delete value.data;
+          return [id, value];
+        }),
+      ),
+    };
+  }
+  const r = NextResponse.json(publicData);
   r.cookies.set("reify-session", owner, {
     httpOnly: true,
     sameSite: "strict",

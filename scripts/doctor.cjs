@@ -18,7 +18,12 @@ try {
       ? process.env.GEMMA_MODEL
       : "default or unsupported (check .env.local)",
     twinlyKeyConfigured: present("TWINLY_API_KEY"),
-    twinlyLiveExecutionEnabled: false,
+    twinlyLiveModeConfigured: process.env.EXECUTION_MODE === "live",
+    twinlyVerificationReferenceConfigured: present(
+      "TWINLY_VERIFICATION_JOB_ID",
+    ),
+    twinlyContactPolicyConfigured: present("TWINLY_ALLOWED_CONTACTS"),
+    twinlyDomainPolicyConfigured: present("TWINLY_ALLOWED_DOMAINS"),
     persistence: process.env.VERCEL
       ? "read-only sandbox"
       : "single-process local files",

@@ -10,7 +10,15 @@ import {
   edit,
   reply,
   log,
+  assertEditable,
 } from "@/lib/engine";
+import { advanceGeneral, retryText } from "@/lib/general-engine";
+import {
+  cancelTwinlyJob,
+  confirmTwinlyResult,
+  pollTwinlyJobs,
+  linkExistingTwinlyJob,
+} from "@/lib/twinly-execution";
 import { parseGemma } from "@/lib/gemma";
 import { draftSchema } from "@/lib/model";
 export const runtime = "nodejs";
@@ -20,8 +28,43 @@ export async function GET(
 ) {
   try {
     const owner = context(req);
-    const { id } = await params;
+    const { id, action } = await params;
     const w = await load(id, owner);
+    if (action === "artifact") {
+      const output = w.outputs?.[req.nextUrl.searchParams.get("taskId") ?? ""];
+      if (!output) throw Error("Artifact not found");
+      const media = !!output.data && !!output.mime;
+      if (
+        media &&
+        ![
+          "image/png",
+          "image/jpeg",
+          "image/webp",
+          "audio/mp4",
+          "audio/m4a",
+          "audio/x-m4a",
+        ].includes(output.mime!)
+      )
+        throw Error("Unsupported artifact media type");
+      const suffix = output.mime?.startsWith("image/")
+        ? output.mime.split("/")[1]
+        : media
+          ? "m4a"
+          : "md";
+      return new Response(
+        media ? Buffer.from(output.data!, "base64") : output.text,
+        {
+          headers: {
+            "Content-Type": media
+              ? output.mime!
+              : "text/markdown; charset=utf-8",
+            "Content-Disposition": `${req.nextUrl.searchParams.get("inline") === "1" && media ? "inline" : "attachment"}; filename="reify-output.${suffix}"`,
+            "Cache-Control": "private, no-store",
+            "X-Content-Type-Options": "nosniff",
+          },
+        },
+      );
+    }
     return respond(
       {
         ...w,
@@ -42,8 +85,45 @@ export async function POST(
     writable();
     const { id, action } = await params;
     const raw = await req.text();
-    if (raw.length > 1000000) throw Error("Request too large");
+    if (raw.length > 6000000) throw Error("Request too large");
     const b = JSON.parse(raw);
+    if (action === "link-provider-job") {
+      z.literal(true).parse(b.acknowledged);
+      return respond(
+        await linkExistingTwinlyJob(
+          id,
+          owner,
+          z.string().parse(b.taskId),
+          z.number().int().parse(b.version),
+          z.uuid().parse(b.externalId),
+        ),
+        owner,
+      );
+    }
+    if (action === "poll") {
+      const current = await load(id, owner);
+      if (current.version !== b.version) throw Error("Stale workflow version");
+      await pollTwinlyJobs(id, owner);
+      return respond(await load(id, owner), owner);
+    }
+    if (action === "cancel-provider")
+      return respond(
+        await cancelTwinlyJob(
+          id,
+          owner,
+          z.string().parse(b.taskId),
+          z.number().int().parse(b.version),
+        ),
+        owner,
+      );
+    if (action === "advance") {
+      const current = await load(id, owner);
+      if (current.mode !== "fixture")
+        return respond(
+          await advanceGeneral(id, owner, z.number().int().parse(b.version)),
+          owner,
+        );
+    }
     return await transact(async () => {
       const w = await load(id, owner);
       if (b.version !== w.version)
@@ -64,8 +144,7 @@ export async function POST(
         const answers = z
           .record(z.string(), z.string().min(1).max(1000))
           .parse(b.answers);
-        if (w.submitted.length)
-          throw Error("Reset before clarifying an executed plan");
+        assertEditable(w);
         if (w.mode === "gemma") {
           const before = w.tasks;
           const revised = await parseGemma({
@@ -124,12 +203,11 @@ export async function POST(
               changed.push(t.id);
             }
           }
-        if (w.submitted.length)
-          throw Error(
-            "Resolve clarification before execution; reset to change an executed plan",
-          );
-        w.version++;
-        w.approvals = {};
+        if (w.mode === "manual") edit(w, draftSchema.parse(w));
+        else {
+          w.version++;
+          w.approvals = {};
+        }
         log(w, "Clarifications applied; review changed task parameters");
         await save(w);
         return respond(
@@ -137,12 +215,20 @@ export async function POST(
           owner,
         );
       } else if (action === "reply") {
+        if (w.mode !== "fixture")
+          throw Error(
+            "Simulated replies are available only in an explicit fixture.",
+          );
         reply(
           w,
           z.string().parse(b.taskId),
           z.enum(["yes", "no", "maybe", "silence"]).parse(b.value),
         );
       } else if (action === "scenario") {
+        if (w.mode !== "fixture")
+          throw Error(
+            "Room scenarios are available only in an explicit fixture.",
+          );
         if (w.audit.length)
           throw Error(
             "Choose scenario before starting; reset for a new scenario",
@@ -150,6 +236,15 @@ export async function POST(
         w.demoScenario = z.enum(["happy", "no_room"]).parse(b.scenario);
         w.version++;
         w.approvals = {};
+      } else if (action === "retry") {
+        retryText(w, z.string().parse(b.taskId));
+      } else if (action === "confirm-result") {
+        z.literal(true).parse(b.acknowledged);
+        confirmTwinlyResult(
+          w,
+          z.string().parse(b.taskId),
+          z.string().min(5).max(1000).parse(b.note),
+        );
       } else if (action === "pause") {
         w.paused = !w.paused;
         log(w, w.paused ? "Paused" : "Resumed");
@@ -157,6 +252,10 @@ export async function POST(
         const t = w.tasks.find((t) => t.id === b.taskId);
         if (!t || t.status !== "awaiting_approval")
           throw Error("Only a pending approval can be denied");
+        if (w.jobs?.[t.id]?.provider === "twinly")
+          throw Error(
+            "This action was already submitted. Request provider cancellation and check the existing job.",
+          );
         t.status = "cancelled";
         delete w.approvals[t.id];
         log(w, "User denied action", t.id);

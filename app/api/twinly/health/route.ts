@@ -1,13 +1,7 @@
-import { TwinlyAdapter } from "@/lib/twinly";
+import { twinlyReadiness } from "@/lib/twinly-readiness";
 export async function GET() {
   try {
-    const h = await new TwinlyAdapter().health();
-    return Response.json({
-      online: h.mac.online,
-      can: h.can,
-      setup: h.mac.setup,
-      liveVerified: false,
-    });
+    return Response.json(await twinlyReadiness());
   } catch (e) {
     return Response.json({
       online: false,

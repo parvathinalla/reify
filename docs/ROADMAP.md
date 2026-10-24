@@ -1,15 +1,14 @@
 # Roadmap and release boundary
 
-Implemented: three input formats, actual Gemma 4 text parsing, validated drafts, questions and edits, exact approvals, a local deterministic engine, controlled portal, simulated replies and persisted verification. See TEST_REPORT for actual results.
+Implemented: three input formats, actual Gemma 4 parsing and text generation, general drafts, server completeness questions, exact approvals, local persisted execution, eight official Twinly adapter families, readiness UI, job polling/cancellation/reconciliation and reply identity/time matching. The controlled room fixture remains separate. See TEST_REPORT for actual results and TWINLY_SETUP for Ajit's configuration.
 
 ## Before general live workflows
 
-1. Enforce completeness for location, date/duration, destination, recipients and resources server-side. Do not rely only on model-generated questions.
-2. Verify real photos for all formats and generic clarification revisions, including ambiguous handwriting and arrows.
-3. Verify Mac /me readiness, scopes and setup; one benign task and one exact-approved consenting message.
-4. Wire live actions with durable submission IDs, job polling/reconciliation, provider approvals and independent evidence.
-5. Bind real replies to verified participants. Sent, delivered and agreed are different states.
-6. Expand capabilities one verified adapter at a time. A plan node is not automatically executable.
+1. Ajit completes Mac permissions, voice/call setup and the explicit harmless connection check.
+2. Record live per-feature outcomes using synthetic inputs and consenting recipients. Mock coverage is not sufficient for release claims.
+3. Verify real photos for all formats and generic clarification revisions, including ambiguous handwriting and arrows.
+4. Test disconnects, Mac approval holds, timeouts, ambiguous replies and reconciliation against the real provider without duplicate submissions.
+5. Broaden optional API fields such as attachments/group messages only with validation and evidence.
 
 ## Before public execution
 

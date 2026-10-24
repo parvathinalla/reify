@@ -1,4 +1,7 @@
 "use client";
+import CapabilityStatus, {
+  type Capability,
+} from "@/components/capability-status";
 import WorkflowGraph from "@/components/workflow-graph";
 import TaskEditor from "@/components/task-editor";
 import Image from "next/image";
@@ -25,16 +28,16 @@ import type { Draft, Workflow, Task } from "@/lib/model";
 import { samples } from "@/lib/fixtures";
 type ViewWorkflow = Workflow & { digests?: Record<string, string> };
 const initialNodes: Node[] = [
-  { id: "a", position: { x: 20, y: 20 }, data: { label: "Find room" } },
+  { id: "a", position: { x: 20, y: 20 }, data: { label: "Read source notes" } },
   {
     id: "b",
     position: { x: 260, y: 20 },
-    data: { label: "IF room available" },
+    data: { label: "Create a draft" },
   },
   {
     id: "c",
     position: { x: 500, y: 20 },
-    data: { label: "Book after approval" },
+    data: { label: "Review before sending" },
   },
 ];
 export default function Home() {
@@ -48,6 +51,8 @@ export default function Home() {
   const [health, setHealth] = useState<{
     gemmaConfigured: boolean;
     persistence: string;
+    capabilities: Capability[];
+    twinlyLive: boolean;
   }>();
   const [w, setW] = useState<ViewWorkflow>();
   const [busy, setBusy] = useState(false);
@@ -165,7 +170,11 @@ export default function Home() {
               ? "Gemma 4 key configured · unverified"
               : "Gemma 4 unverified · fixture available"}
           </span>
-          <span className="badge">Twinly mock</span>
+          <span className="badge">
+            {w?.mode === "fixture"
+              ? "Twinly mock"
+              : `Twinly - ${health?.capabilities?.filter((c) => c.provider === "twinly" && c.ready).length ?? 0} features ready`}
+          </span>
         </div>
       </header>
       <main>
@@ -196,6 +205,7 @@ export default function Home() {
           <div>
             <section className="panel">
               <h2>Start with what you have.</h2>
+              <CapabilityStatus items={health?.capabilities} />
               <div className="tabs">
                 {(
                   [
@@ -370,14 +380,21 @@ export default function Home() {
                 <span className="badge amber">
                   {w.mode === "fixture"
                     ? "Fixture · Gemma 4 unverified"
-                    : "Gemma 4 parsed this source"}{" "}
-                  · Demo execution
+                    : w.mode === "gemma"
+                      ? "Gemma 4 parsed this source"
+                      : "Manually authored plan"}{" "}
+                  ·{" "}
+                  {w.mode === "fixture"
+                    ? "Demo execution"
+                    : "Execution by capability"}
                 </span>
               </div>
               <div className="row">
-                <a href="/demo/rooms" target="_blank">
-                  Open room portal ↗
-                </a>
+                {w.mode === "fixture" && (
+                  <a href="/demo/rooms" target="_blank">
+                    Open room portal ↗
+                  </a>
+                )}
                 <button
                   onClick={() => {
                     setW(undefined);
@@ -386,27 +403,36 @@ export default function Home() {
                     setAnswers({});
                   }}
                 >
-                  New / reset demo
+                  New workflow
                 </button>
               </div>
             </div>
             <div className="grid">
               <section className="panel">
                 <div className="eyebrow">02 / Understand & clarify</div>
-                <label className="field" htmlFor="scenario">
-                  Controlled demo inventory
-                </label>
-                <select
-                  id="scenario"
-                  value={w.demoScenario ?? "happy"}
-                  disabled={w.audit.length > 0 || busy}
-                  onChange={(e) =>
-                    void action("scenario", { scenario: e.target.value })
-                  }
-                >
-                  <option value="happy">Room available</option>
-                  <option value="no_room">No room available</option>
-                </select>
+                {w.mode === "fixture" && (
+                  <>
+                    {" "}
+                    <label className="field" htmlFor="scenario">
+                      Controlled demo inventory
+                    </label>
+                    <select
+                      id="scenario"
+                      value={w.demoScenario ?? "happy"}
+                      disabled={w.audit.length > 0 || busy}
+                      onChange={(e) =>
+                        void action("scenario", { scenario: e.target.value })
+                      }
+                    >
+                      <option value="happy">Room available</option>
+                      <option value="no_room">No room available</option>
+                    </select>
+                  </>
+                )}
+                {w.mode !== "fixture" && (
+                  <CapabilityStatus items={health?.capabilities} />
+                )}
+
                 <p>{w.summary}</p>
                 {(w.sourceText || text) && (
                   <details>
@@ -549,7 +575,12 @@ export default function Home() {
                     <div className="eyebrow">04 / Execute with intention</div>
                     <h2>Every action has a gate.</h2>
                   </div>
-                  <span className="badge">Mock adapter · max 2 per tick</span>
+                  <span className="badge">
+                    {w.mode === "fixture"
+                      ? "Demo adapter"
+                      : "Connected capabilities"}{" "}
+                    · max 2 ready tasks
+                  </span>
                 </div>
                 <div className="row">
                   <button
@@ -562,10 +593,18 @@ export default function Home() {
                   <button disabled={busy} onClick={() => void action("pause")}>
                     {w.paused ? "Resume" : "Pause"}
                   </button>
+                  {Object.values(w.jobs ?? {}).some(
+                    (j) => j.provider === "twinly",
+                  ) && (
+                    <button disabled={busy} onClick={() => void action("poll")}>
+                      Check provider progress
+                    </button>
+                  )}
                 </div>
                 <p className="muted">
-                  Advance runs ready tasks only. A later advance independently
-                  reads stored reservation evidence.
+                  {w.mode === "fixture"
+                    ? "Advance runs ready demo tasks. A later advance verifies stored reservation evidence."
+                    : "Run ready tasks to generate requested text and save the results. Unavailable tools stay blocked with a reason."}
                 </p>
                 {w.tasks.map((t) => (
                   <div className={`task ${t.status}`} key={t.id}>
@@ -581,67 +620,175 @@ export default function Home() {
                         ? `After ${t.dependsOn.join(", ")}`
                         : "Independent"}
                     </p>
-                    {t.status === "awaiting_approval" && (
-                      <div className="row">
+                    {t.blockReason && (
+                      <p className="muted" role="status">
+                        {t.blockReason}
+                      </p>
+                    )}
+                    {w.outputs?.[t.id] && (
+                      <details open>
+                        <summary>
+                          Generated output - {w.outputs[t.id].model}
+                        </summary>
+                        <pre>{w.outputs[t.id].text}</pre>
+                        {w.outputs[t.id].mime?.startsWith("image/") && (
+                          <Image
+                            unoptimized
+                            width={640}
+                            height={400}
+                            style={{ maxWidth: "100%", height: "auto" }}
+                            alt="Generated image artifact"
+                            src={`/api/workflows/${w.id}/artifact?taskId=${encodeURIComponent(t.id)}&inline=1`}
+                          />
+                        )}
+                        {w.outputs[t.id].mime?.startsWith("audio/") && (
+                          <audio
+                            controls
+                            src={`/api/workflows/${w.id}/artifact?taskId=${encodeURIComponent(t.id)}&inline=1`}
+                          />
+                        )}
+                        <a
+                          href={`/api/workflows/${w.id}/artifact?taskId=${encodeURIComponent(t.id)}`}
+                        >
+                          Download {w.outputs[t.id].mime ? "media" : "Markdown"}
+                        </a>
+                      </details>
+                    )}
+                    {t.kind === "generate_content" &&
+                      (t.status === "failed" || t.status === "running") && (
                         <button
                           className="small"
-                          onClick={() => {
-                            void fetch(`/api/workflows/${w.id}/status`)
-                              .then((r) => r.json())
-                              .then((d) => {
-                                if (!Array.isArray(d.tasks)) {
-                                  setError(
-                                    d.error || "Unable to refresh approval",
+                          disabled={busy}
+                          onClick={() => void action("retry", { taskId: t.id })}
+                        >
+                          Retry failed / interrupted text task
+                        </button>
+                      )}
+                    {t.status === "awaiting_approval" &&
+                      w.jobs?.[t.id]?.providerStatus !== "needs_approval" && (
+                        <div className="row">
+                          <button
+                            className="small"
+                            onClick={() => {
+                              void fetch(`/api/workflows/${w.id}/status`)
+                                .then((r) => r.json())
+                                .then((d) => {
+                                  if (!Array.isArray(d.tasks)) {
+                                    setError(
+                                      d.error || "Unable to refresh approval",
+                                    );
+                                    return;
+                                  }
+                                  const current = d.tasks.find(
+                                    (x: Task) => x.id === t.id,
                                   );
-                                  return;
-                                }
-                                const current = d.tasks.find(
-                                  (x: Task) => x.id === t.id,
+                                  if (!current) {
+                                    setError(
+                                      "Task no longer exists. Refresh the plan.",
+                                    );
+                                    return;
+                                  }
+                                  setW(d);
+                                  setApproval(current);
+                                })
+                                .catch(() =>
+                                  setError(
+                                    "Unable to refresh approval. Check connection and retry.",
+                                  ),
                                 );
-                                if (!current) {
-                                  setError(
-                                    "Task no longer exists. Refresh the plan.",
-                                  );
-                                  return;
-                                }
-                                setW(d);
-                                setApproval(current);
-                              })
-                              .catch(() =>
-                                setError(
-                                  "Unable to refresh approval. Check connection and retry.",
-                                ),
-                              );
+                            }}
+                          >
+                            Review exact action
+                          </button>
+                          <button
+                            className="small"
+                            onClick={() =>
+                              void action("deny", { taskId: t.id })
+                            }
+                          >
+                            Deny
+                          </button>
+                        </div>
+                      )}
+                    {w.jobs?.[t.id]?.provider === "twinly" &&
+                      w.jobs[t.id].externalId &&
+                      ["running", "awaiting_approval"].includes(t.status) && (
+                        <button
+                          className="small"
+                          disabled={busy}
+                          onClick={() =>
+                            void action("cancel-provider", { taskId: t.id })
+                          }
+                        >
+                          Request provider stop
+                        </button>
+                      )}
+                    {w.jobs?.[t.id]?.provider === "twinly" &&
+                      w.jobs[t.id].state === "uncertain" &&
+                      !w.jobs[t.id].externalId && (
+                        <button
+                          className="small"
+                          disabled={busy}
+                          onClick={() => {
+                            const externalId = window.prompt(
+                              "Inspect the existing job on Ajit's Mac. Only paste its UUID after checking its exact action and recipient match this task. This links the existing job; it does not retry.",
+                            );
+                            if (
+                              externalId &&
+                              window.confirm(
+                                "I checked that this is the same action and recipient in Twinly.",
+                              )
+                            )
+                              void action("link-provider-job", {
+                                taskId: t.id,
+                                externalId: externalId.trim(),
+                                acknowledged: true,
+                              });
                           }}
                         >
-                          Review exact action
+                          Link existing Mac job
                         </button>
+                      )}
+                    {t.status === "verifying" &&
+                      w.jobs?.[t.id]?.providerStatus === "done" &&
+                      w.jobs[t.id].state === "completed" && (
                         <button
                           className="small"
-                          onClick={() => void action("deny", { taskId: t.id })}
+                          disabled={busy}
+                          onClick={() => {
+                            const note = window.prompt(
+                              "Describe the real outcome you independently checked. This is a user confirmation, not automatic verification.",
+                            );
+                            if (note && note.trim().length >= 5)
+                              void action("confirm-result", {
+                                taskId: t.id,
+                                note,
+                                acknowledged: true,
+                              });
+                          }}
                         >
-                          Deny
+                          Record my outcome check
                         </button>
-                      </div>
-                    )}
-                    {t.status === "awaiting_external_reply" && (
-                      <div className="row">
-                        <span className="muted">Inject simulated reply:</span>
-                        {(["yes", "no", "maybe", "silence"] as const).map(
-                          (value) => (
-                            <button
-                              className="small"
-                              key={value}
-                              onClick={() =>
-                                void action("reply", { taskId: t.id, value })
-                              }
-                            >
-                              {value}
-                            </button>
-                          ),
-                        )}
-                      </div>
-                    )}
+                      )}
+                    {w.mode === "fixture" &&
+                      t.status === "awaiting_external_reply" && (
+                        <div className="row">
+                          <span className="muted">Inject simulated reply:</span>
+                          {(["yes", "no", "maybe", "silence"] as const).map(
+                            (value) => (
+                              <button
+                                className="small"
+                                key={value}
+                                onClick={() =>
+                                  void action("reply", { taskId: t.id, value })
+                                }
+                              >
+                                {value}
+                              </button>
+                            ),
+                          )}
+                        </div>
+                      )}
                   </div>
                 ))}
               </section>
@@ -674,6 +821,13 @@ export default function Home() {
                       const result = await action("edit", {
                         draft: {
                           ...w,
+                          questions: w.questions.map((q) =>
+                            q.id === `${task.id}-screenshot` &&
+                            task.inputs.screenshot &&
+                            task.inputs.ownedScreen === true
+                              ? { ...q, answer: "Uploaded an owned screenshot" }
+                              : q,
+                          ),
                           tasks: w.tasks.map((t) =>
                             t.id === task.id ? task : t,
                           ),
@@ -721,14 +875,18 @@ export default function Home() {
           </>
         )}
         <div className="footer">
-          REIFY — From thought to action. Controlled sandbox · fictional room
-          availability · no real contacts messaged.
+          REIFY — From thought to action.{" "}
+          {w?.mode === "fixture"
+            ? "Explicit fixture - simulated external actions."
+            : "Local workspace - real text generation; external actions require verified tools and approval."}
         </div>
       </main>
       <dialog ref={dialog} onCancel={() => setApproval(undefined)}>
         <h2>Approve this exact action?</h2>
         <span className="badge amber">
-          Demo adapter · no real external message
+          {w?.mode === "fixture"
+            ? "Demo adapter - no real external message"
+            : "Exact action requires provider verification and approval"}
         </span>
         <p>{approval?.title}</p>
         <pre>{JSON.stringify(approval?.inputs, null, 2)}</pre>

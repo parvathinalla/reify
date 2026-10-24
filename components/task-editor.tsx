@@ -41,6 +41,66 @@ export default function TaskEditor({
         value={inputs}
         onChange={(e) => setInputs(e.target.value)}
       />
+      {task.kind === "computer_action" && (
+        <>
+          <label className="field" htmlFor="owned-screen">
+            Owned screenshot (PNG/JPEG/WebP, max 4 MB)
+          </label>
+          <input
+            id="owned-screen"
+            type="file"
+            accept="image/png,image/jpeg,image/webp"
+            onChange={async (e) => {
+              const file = e.target.files?.[0];
+              if (!file) return;
+              if (
+                file.size > 4 * 1024 * 1024 ||
+                !["image/png", "image/jpeg", "image/webp"].includes(file.type)
+              ) {
+                setError("Choose a PNG, JPEG or WebP under 4 MB.");
+                return;
+              }
+              const screenshot = await new Promise<string>((resolve) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(String(reader.result));
+                reader.readAsDataURL(file);
+              });
+              try {
+                setInputs(
+                  JSON.stringify(
+                    { ...JSON.parse(inputs), screenshot, ownedScreen: false },
+                    null,
+                    2,
+                  ),
+                );
+              } catch {
+                setError("Fix the input JSON first.");
+              }
+            }}
+          />
+          <label className="field">
+            <input
+              style={{ width: "auto", marginRight: 8 }}
+              type="checkbox"
+              onChange={(e) => {
+                try {
+                  setInputs(
+                    JSON.stringify(
+                      { ...JSON.parse(inputs), ownedScreen: e.target.checked },
+                      null,
+                      2,
+                    ),
+                  );
+                } catch {
+                  setError("Fix the input JSON first.");
+                }
+              }}
+            />
+            This is a screen I own or am authorized to use. Only a proposed
+            action will be generated.
+          </label>
+        </>
+      )}
       {error && <p role="alert">{error}</p>}
       <div className="row">
         <button

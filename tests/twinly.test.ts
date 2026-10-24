@@ -22,7 +22,7 @@ describe("official Twinly adapter contract (mock HTTP, not live)", () => {
       vi.fn().mockResolvedValue(
         Response.json({
           mac: { online: false },
-          can: { cloud: [], mac: [] },
+          can: { cloud: [], mac: ["POST /v1/messages"] },
         }),
       ),
     );
@@ -36,8 +36,8 @@ describe("official Twinly adapter contract (mock HTTP, not live)", () => {
       .fn()
       .mockResolvedValueOnce(
         Response.json({
-          mac: { online: true },
-          can: { cloud: [], mac: ["messages.send"] },
+          mac: { online: true, setup: { messages: true } },
+          can: { cloud: [], mac: ["POST /v1/messages"] },
         }),
       )
       .mockResolvedValueOnce(
