@@ -86,3 +86,8 @@ Local Next.js implementation is now present. See docs/TEST_REPORT.md for actual 
 - [x] Simple Ajit configuration guide in docs/TWINLY_SETUP.md.
 - [ ] Ajit verifies every configured Twinly feature on the real Mac with consenting contacts.
 - [ ] Production hosting: durable database, account isolation and distributed execution protections. Local-first is the current authorized target.
+
+## Focused interface follow-up
+- [x] Dark charcoal/violet workspace; separate Plan / Dependency map / Results / Details views.
+- [x] Clear next action, question-first flow, named-field task editing and readable approvals.
+- [x] Desktop/mobile visual review, focus-return check and all 12 browser/API checks passed.

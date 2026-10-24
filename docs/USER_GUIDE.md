@@ -31,3 +31,7 @@ Saved state reloads in the same browser. New/reset creates a fresh workspace; lo
 Reify supports the eight documented Twinly API families, subject to provider capabilities and configuration. See [Twinly setup](TWINLY_SETUP.md). Mock checks cover the adapter; real Mac feature verification remains pending with Ajit. Manual tasks can appear without being automatically executable. Reify does not promise every arbitrary request or optional provider field.
 
 The large study-room example panel was intentionally removed from the start screen. Regression tests seed explicit fixtures directly through the API; users enter their own source and use Gemma.
+
+## Workspace navigation
+
+The workspace opens on **Plan**: answer any missing details, review the named steps and choose **Run next steps**. Required unanswered questions keep execution disabled. Open **Dependency map** to edit connections, **Results** for outputs and evidence, or **Details** for source/assumptions and advanced plan editing. Select any step title to edit its fields and prerequisites. **Connections** in the header contains tool readiness and setup guidance. Escape closes settings and step editing and returns keyboard focus.

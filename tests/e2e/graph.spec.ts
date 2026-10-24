@@ -12,15 +12,16 @@ test("graph renders six visible nodes and allows task editing", async ({
     workflow.id,
   );
   await page.reload();
+  await page
+    .getByRole("button", { name: "Dependency map", exact: true })
+    .click();
   await expect(page.locator(".react-flow__node")).toHaveCount(6);
   await expect(page.locator(".react-flow__node").first()).toBeVisible();
   await page.locator(".react-flow__node").first().click();
   await page
     .getByLabel("Task title", { exact: true })
     .fill("Find a quiet library room");
-  await page
-    .getByRole("button", { name: "Save task & invalidate approvals" })
-    .click();
+  await page.getByRole("button", { name: "Save changes" }).click();
   await expect(page.locator(".react-flow__node").first()).toContainText(
     "Find a quiet library room",
   );

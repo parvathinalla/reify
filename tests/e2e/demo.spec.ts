@@ -16,14 +16,12 @@ test("study-room happy path through actual browser and API", async ({
     page.getByText("A place to think, together", { exact: true }),
   ).toBeVisible();
   await page.getByLabel("Required answer").fill("2099-10-25T16:00:00-04:00");
-  await page
-    .getByRole("button", { name: "Apply answers & review changes" })
-    .click();
-  await expect(page.getByText("WORKSPACE / VERSION 2")).toBeVisible();
+  await page.getByRole("button", { name: "Save answers" }).click();
+  await expect(page.getByText("/ Version 2")).toBeVisible();
   const tick = async () => {
-    await page.getByRole("button", { name: "Advance ready tasks" }).click();
+    await page.getByRole("button", { name: "Run next steps" }).click();
     await expect(
-      page.getByRole("button", { name: "Advance ready tasks" }),
+      page.getByRole("button", { name: "Run next steps" }),
     ).toBeEnabled();
   };
   const approveAll = async () => {
@@ -57,6 +55,9 @@ test("study-room happy path through actual browser and API", async ({
   await approveAll();
   await tick();
   await expect(page.getByText("6 completed", { exact: true })).toBeVisible();
+  await page
+    .getByRole("button", { name: "Dependency map", exact: true })
+    .click();
   await expect(page.locator(".react-flow__node")).toHaveCount(6);
   await expect(page.locator(".react-flow__edge-path")).toHaveCount(5);
   await expect(page.locator(".react-flow__node").first()).toBeVisible();

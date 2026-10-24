@@ -22,6 +22,11 @@ import {
   ListTodo,
   FilePenLine,
   ShieldCheck,
+  ArrowRight,
+  SlidersHorizontal,
+  CheckCircle2,
+  Circle,
+  ChevronRight,
   Sparkles,
 } from "lucide-react";
 import type { Draft, Workflow, Task } from "@/lib/model";
@@ -41,6 +46,10 @@ const initialNodes: Node[] = [
   },
 ];
 export default function Home() {
+  const [view, setView] = useState<"plan" | "map" | "results" | "details">(
+    "plan",
+  );
+  const [connections, setConnections] = useState(false);
   const [format, setFormat] = useState<Draft["source"]["format"]>("todo");
   const [medium, setMedium] = useState<Draft["source"]["medium"]>("typed");
   const [text, setText] = useState("");
@@ -63,6 +72,8 @@ export default function Home() {
   const [selected, setSelected] = useState<Task>();
   const [approval, setApproval] = useState<Task>();
   const dialog = useRef<HTMLDialogElement>(null);
+  const connectionsDialog = useRef<HTMLDialogElement>(null);
+  const editorDialog = useRef<HTMLDialogElement>(null);
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([
     { id: "a-b", source: "a", target: "b", label: "next" },
@@ -87,6 +98,18 @@ export default function Home() {
   useEffect(() => {
     if (approval) dialog.current?.showModal();
   }, [approval]);
+  useEffect(() => {
+    if (!connections) return;
+    const trigger = document.activeElement as HTMLElement | null;
+    connectionsDialog.current?.showModal();
+    return () => trigger?.focus();
+  }, [connections]);
+  useEffect(() => {
+    if (!selected) return;
+    const trigger = document.activeElement as HTMLElement | null;
+    editorDialog.current?.showModal();
+    return () => trigger?.focus();
+  }, [selected]);
   async function request(url: string, data: unknown) {
     setBusy(true);
     setError("");
@@ -164,38 +187,29 @@ export default function Home() {
         <div className="brand">
           <span className="mark">R</span>REIFY
         </div>
-        <div className="row">
-          <span className="badge amber">
-            {health?.gemmaConfigured
-              ? "Gemma 4 key configured · unverified"
-              : "Gemma 4 unverified · fixture available"}
+        <div className="row header-actions">
+          <span className="local-label">
+            <span className="connection-dot" /> Personal workspace
           </span>
-          <span className="badge">
-            {w?.mode === "fixture"
-              ? "Twinly mock"
-              : `Twinly - ${health?.capabilities?.filter((c) => c.provider === "twinly" && c.ready).length ?? 0} features ready`}
-          </span>
+          <button className="quiet" onClick={() => setConnections(true)}>
+            <SlidersHorizontal size={16} /> Connections
+          </button>
         </div>
       </header>
       <main>
-        <div className="hero">
-          <div className="eyebrow">A clearer path from intent to done</div>
-          <h1>
-            Your thoughts.
-            <br />
-            <span>Now in motion.</span>
-          </h1>
-          <div className="row between">
-            <p>
-              Lists, diagrams, scattered ideas. Shape them into a plan you
-              control.
-            </p>
-            <span className="badge">
-              <ShieldCheck size={12} style={{ display: "inline" }} /> Human
-              approval, every side effect
-            </span>
+        {!w && (
+          <div className="hero">
+            <div className="eyebrow">
+              A little less planning. A little more done.
+            </div>
+            <h1>
+              What would you like
+              <br />
+              <span>to get done?</span>
+            </h1>
+            <p>Bring your notes. Reify helps turn them into your next steps.</p>
           </div>
-        </div>
+        )}
         {error && (
           <div className="error" role="alert">
             {error}
@@ -203,9 +217,8 @@ export default function Home() {
         )}
         {!w ? (
           <div>
-            <section className="panel">
+            <section className="panel composer">
               <h2>Start with what you have.</h2>
-              <CapabilityStatus items={health?.capabilities} />
               <div className="tabs">
                 {(
                   [
@@ -361,7 +374,10 @@ export default function Home() {
                   <Sparkles size={15} style={{ display: "inline" }} />{" "}
                   {busy ? "Understanding…" : "Understand with Gemma 4"}
                 </button>
-                <button onClick={() => setText(samples[format])}>
+                <button
+                  className="quiet"
+                  onClick={() => setText(samples[format])}
+                >
                   Insert example text
                 </button>
               </div>
@@ -373,514 +389,714 @@ export default function Home() {
           </div>
         ) : (
           <>
-            <div className="row between" style={{ marginBottom: 20 }}>
-              <div>
-                <div className="eyebrow">WORKSPACE / VERSION {w.version}</div>
-                <h2>{w.title}</h2>
-                <span className="badge amber">
-                  {w.mode === "fixture"
-                    ? "Fixture · Gemma 4 unverified"
-                    : w.mode === "gemma"
-                      ? "Gemma 4 parsed this source"
-                      : "Manually authored plan"}{" "}
-                  ·{" "}
-                  {w.mode === "fixture"
-                    ? "Demo execution"
-                    : "Execution by capability"}
-                </span>
-              </div>
-              <div className="row">
-                {w.mode === "fixture" && (
-                  <a href="/demo/rooms" target="_blank">
-                    Open room portal ↗
-                  </a>
-                )}
-                <button
-                  onClick={() => {
-                    setW(undefined);
-                    localStorage.removeItem("reify-id");
-                    setSelected(undefined);
-                    setAnswers({});
-                  }}
-                >
-                  New workflow
-                </button>
-              </div>
-            </div>
-            <div className="grid">
-              <section className="panel">
-                <div className="eyebrow">02 / Understand & clarify</div>
-                {w.mode === "fixture" && (
-                  <>
-                    {" "}
-                    <label className="field" htmlFor="scenario">
-                      Controlled demo inventory
-                    </label>
-                    <select
-                      id="scenario"
-                      value={w.demoScenario ?? "happy"}
-                      disabled={w.audit.length > 0 || busy}
-                      onChange={(e) =>
-                        void action("scenario", { scenario: e.target.value })
-                      }
-                    >
-                      <option value="happy">Room available</option>
-                      <option value="no_room">No room available</option>
-                    </select>
-                  </>
-                )}
-                {w.mode !== "fixture" && (
-                  <CapabilityStatus items={health?.capabilities} />
-                )}
-
-                <p>{w.summary}</p>
-                {(w.sourceText || text) && (
-                  <details>
-                    <summary>Source text</summary>
-                    <div className="source">{w.sourceText || text}</div>
-                  </details>
-                )}
-                {preview && (
-                  <Image
-                    unoptimized
-                    width={600}
-                    height={190}
-                    className="sourceImage"
-                    src={preview}
-                    alt="Original source"
-                  />
-                )}
-                {w.warnings.map((x, i) => (
-                  <p className="muted" key={i}>
-                    {x}
-                  </p>
-                ))}
-                {w.questions.map((q) => (
-                  <div className="question" key={q.id}>
-                    <b>{q.question}</b>
-                    <p>{q.reason}</p>
-                    <label className="field" htmlFor={q.id}>
-                      {q.required
-                        ? "Required answer"
-                        : "Optional — acknowledge uncertainty"}
-                    </label>
-                    <input
-                      id={q.id}
-                      value={answers[q.id] ?? q.answer ?? ""}
-                      onChange={(e) =>
-                        setAnswers((a) => ({ ...a, [q.id]: e.target.value }))
-                      }
-                      placeholder={
-                        q.id === "when"
-                          ? "2026-10-25T16:00:00-04:00"
-                          : "Your answer"
-                      }
-                    />
-                  </div>
-                ))}
-                {w.questions.length > 0 && (
-                  <button
-                    disabled={busy}
-                    onClick={() => void action("clarify", { answers })}
-                  >
-                    Apply answers & review changes
-                  </button>
-                )}
-                <h3>Assumptions</h3>
-                {w.assumptions.map((a, i) => (
-                  <p className="muted" key={i}>
-                    {a}
-                  </p>
-                ))}
-                <div className="row">
-                  <button
-                    onClick={() => {
-                      setEditJson(
-                        JSON.stringify(
-                          {
-                            title: w.title,
-                            source: w.source,
-                            timezone: w.timezone,
-                            summary: w.summary,
-                            tasks: w.tasks,
-                            questions: w.questions,
-                            assumptions: w.assumptions,
-                            warnings: w.warnings,
-                          },
-                          null,
-                          2,
-                        ),
-                      );
-                      setEditing(!editing);
-                    }}
-                  >
-                    Edit complete plan
-                  </button>
+            <div className="workspace-heading">
+              <div className="workspace-title">
+                <div className="eyebrow">
+                  {w.mode === "fixture" ? "Demo workspace" : "Your workspace"}{" "}
+                  <span className="version-label"> / Version {w.version}</span>
                 </div>
-                {editing && (
-                  <>
-                    <label className="field" htmlFor="plan">
-                      Tasks, recipients, inputs and dependencies (validated
-                      JSON)
-                    </label>
-                    <textarea
-                      id="plan"
-                      style={{ minHeight: 350 }}
-                      value={editJson}
-                      onChange={(e) => setEditJson(e.target.value)}
+                <h1>{w.title}</h1>
+                <p>{w.summary}</p>
+              </div>
+              <button
+                className="quiet"
+                onClick={() => {
+                  setW(undefined);
+                  localStorage.removeItem("reify-id");
+                  setSelected(undefined);
+                  setAnswers({});
+                  setView("plan");
+                }}
+              >
+                + New workflow
+              </button>
+            </div>
+            <div className="workspace-meta">
+              <span>
+                <CheckCircle2 size={15} />{" "}
+                {w.tasks.filter((t) => t.status === "completed").length}{" "}
+                completed
+              </span>
+              <span>{w.tasks.length} steps</span>
+              {w.mode === "fixture" && (
+                <span className="demo-label">Simulated actions</span>
+              )}
+              <span className="approval-note">
+                <ShieldCheck size={14} /> You approve external actions
+              </span>
+            </div>
+            <nav className="workspace-tabs" aria-label="Workflow views">
+              {(
+                [
+                  ["plan", "Plan"],
+                  ["map", "Dependency map"],
+                  ["results", "Results"],
+                  ["details", "Details"],
+                ] as const
+              ).map(([id, label]) => (
+                <button
+                  key={id}
+                  aria-current={view === id ? "page" : undefined}
+                  className={view === id ? "active" : ""}
+                  onClick={() => setView(id)}
+                >
+                  {label}
+                  {id === "results" &&
+                    Object.keys(w.outputs ?? {}).length > 0 && (
+                      <span className="tab-count">
+                        {Object.keys(w.outputs ?? {}).length}
+                      </span>
+                    )}
+                </button>
+              ))}
+            </nav>
+            <div className="workspace-content" aria-busy={busy}>
+              {view === "details" && (
+                <section className="panel details-panel">
+                  <h2>About this plan</h2>
+                  <p className="muted">
+                    {w.mode === "fixture"
+                      ? "Explicit fixture; external actions are simulated."
+                      : w.mode === "gemma"
+                        ? "Interpreted with Gemma 4. Review the details before running."
+                        : "Manually authored plan."}
+                  </p>
+                  {w.mode === "fixture" && (
+                    <a href="/demo/rooms" target="_blank">
+                      Open room portal
+                    </a>
+                  )}
+                  {w.mode === "fixture" && (
+                    <>
+                      {" "}
+                      <label className="field" htmlFor="scenario">
+                        Controlled demo inventory
+                      </label>
+                      <select
+                        id="scenario"
+                        value={w.demoScenario ?? "happy"}
+                        disabled={w.audit.length > 0 || busy}
+                        onChange={(e) =>
+                          void action("scenario", { scenario: e.target.value })
+                        }
+                      >
+                        <option value="happy">Room available</option>
+                        <option value="no_room">No room available</option>
+                      </select>
+                    </>
+                  )}
+
+                  <p>{w.summary}</p>
+                  {(w.sourceText || text) && (
+                    <details>
+                      <summary>Source text</summary>
+                      <div className="source">{w.sourceText || text}</div>
+                    </details>
+                  )}
+                  {preview && (
+                    <Image
+                      unoptimized
+                      width={600}
+                      height={190}
+                      className="sourceImage"
+                      src={preview}
+                      alt="Original source"
                     />
+                  )}
+                  {w.warnings.map((x, i) => (
+                    <p className="muted" key={i}>
+                      {x}
+                    </p>
+                  ))}
+                  <h3>Assumptions</h3>
+                  {w.assumptions.map((a, i) => (
+                    <p className="muted" key={i}>
+                      {a}
+                    </p>
+                  ))}
+                  <div className="row">
                     <button
                       onClick={() => {
-                        try {
-                          void action("edit", {
-                            draft: JSON.parse(editJson),
-                          }).then((r) => {
-                            if (r) setEditing(false);
-                          });
-                        } catch {
-                          setError("Invalid JSON");
-                        }
+                        setEditJson(
+                          JSON.stringify(
+                            {
+                              title: w.title,
+                              source: w.source,
+                              timezone: w.timezone,
+                              summary: w.summary,
+                              tasks: w.tasks,
+                              questions: w.questions,
+                              assumptions: w.assumptions,
+                              warnings: w.warnings,
+                            },
+                            null,
+                            2,
+                          ),
+                        );
+                        setEditing(!editing);
                       }}
                     >
-                      Save & validate DAG
+                      Edit complete plan
                     </button>
-                  </>
-                )}
-              </section>
-              <section className="panel">
-                <div className="row between">
-                  <div>
-                    <div className="eyebrow">03 / Your dependency map</div>
-                    <h2>A plan you can inspect.</h2>
                   </div>
-                  <span className="badge">{w.tasks.length} tasks</span>
-                </div>
-                <div className="flow">
-                  <WorkflowGraph
-                    tasks={w.tasks}
-                    onSelect={setSelected}
-                    onEdit={(tasks) =>
-                      void action("edit", { draft: { ...w, tasks } })
-                    }
-                  />
-                </div>
-                <p className="muted">
-                  Connect handles to add prerequisites. Select an edge and
-                  Delete to remove it. Select a node to edit.
-                </p>
-              </section>
-              <section className="panel">
-                <div className="row between">
-                  <div>
-                    <div className="eyebrow">04 / Execute with intention</div>
-                    <h2>Every action has a gate.</h2>
-                  </div>
-                  <span className="badge">
-                    {w.mode === "fixture"
-                      ? "Demo adapter"
-                      : "Connected capabilities"}{" "}
-                    · max 2 ready tasks
-                  </span>
-                </div>
-                <div className="row">
-                  <button
-                    className="primary"
-                    disabled={busy || w.paused}
-                    onClick={() => void action("advance")}
-                  >
-                    Advance ready tasks
-                  </button>
-                  <button disabled={busy} onClick={() => void action("pause")}>
-                    {w.paused ? "Resume" : "Pause"}
-                  </button>
-                  {Object.values(w.jobs ?? {}).some(
-                    (j) => j.provider === "twinly",
-                  ) && (
-                    <button disabled={busy} onClick={() => void action("poll")}>
-                      Check provider progress
-                    </button>
+                  {editing && (
+                    <>
+                      <label className="field" htmlFor="plan">
+                        Tasks, recipients, inputs and dependencies (validated
+                        JSON)
+                      </label>
+                      <textarea
+                        id="plan"
+                        style={{ minHeight: 350 }}
+                        value={editJson}
+                        onChange={(e) => setEditJson(e.target.value)}
+                      />
+                      <button
+                        onClick={() => {
+                          try {
+                            void action("edit", {
+                              draft: JSON.parse(editJson),
+                            }).then((r) => {
+                              if (r) setEditing(false);
+                            });
+                          } catch {
+                            setError("Invalid JSON");
+                          }
+                        }}
+                      >
+                        Save & validate DAG
+                      </button>
+                    </>
                   )}
-                </div>
-                <p className="muted">
-                  {w.mode === "fixture"
-                    ? "Advance runs ready demo tasks. A later advance verifies stored reservation evidence."
-                    : "Run ready tasks to generate requested text and save the results. Unavailable tools stay blocked with a reason."}
-                </p>
-                {w.tasks.map((t) => (
-                  <div className={`task ${t.status}`} key={t.id}>
-                    <div className="row between">
-                      <b>{t.title}</b>
-                      <span className="status">
-                        {t.status.replaceAll("_", " ")}
-                      </span>
+                </section>
+              )}
+              {view === "map" && (
+                <section className="panel map-panel">
+                  <div className="row between">
+                    <div>
+                      <div className="eyebrow">See how it connects</div>
+                      <h2>Your dependency map</h2>
                     </div>
-                    <p className="muted">
-                      {t.kind} ·{" "}
-                      {t.dependsOn.length
-                        ? `After ${t.dependsOn.join(", ")}`
-                        : "Independent"}
-                    </p>
-                    {t.blockReason && (
-                      <p className="muted" role="status">
-                        {t.blockReason}
-                      </p>
-                    )}
-                    {w.outputs?.[t.id] && (
-                      <details open>
-                        <summary>
-                          Generated output - {w.outputs[t.id].model}
-                        </summary>
-                        <pre>{w.outputs[t.id].text}</pre>
-                        {w.outputs[t.id].mime?.startsWith("image/") && (
-                          <Image
-                            unoptimized
-                            width={640}
-                            height={400}
-                            style={{ maxWidth: "100%", height: "auto" }}
-                            alt="Generated image artifact"
-                            src={`/api/workflows/${w.id}/artifact?taskId=${encodeURIComponent(t.id)}&inline=1`}
-                          />
-                        )}
-                        {w.outputs[t.id].mime?.startsWith("audio/") && (
-                          <audio
-                            controls
-                            src={`/api/workflows/${w.id}/artifact?taskId=${encodeURIComponent(t.id)}&inline=1`}
-                          />
-                        )}
-                        <a
-                          href={`/api/workflows/${w.id}/artifact?taskId=${encodeURIComponent(t.id)}`}
-                        >
-                          Download {w.outputs[t.id].mime ? "media" : "Markdown"}
-                        </a>
-                      </details>
-                    )}
-                    {t.kind === "generate_content" &&
-                      (t.status === "failed" || t.status === "running") && (
+                    <span className="badge">{w.tasks.length} tasks</span>
+                  </div>
+                  <div className="flow">
+                    <WorkflowGraph
+                      tasks={w.tasks}
+                      onSelect={setSelected}
+                      onEdit={(tasks) =>
+                        void action("edit", { draft: { ...w, tasks } })
+                      }
+                    />
+                  </div>
+                  <p className="muted">
+                    Connect handles to add prerequisites. Select an edge and
+                    Delete to remove it. Select a node to edit.
+                  </p>
+                </section>
+              )}
+              {view === "plan" && (
+                <section className="panel plan-panel">
+                  {w.questions.some((q) => !q.answer) && (
+                    <div className="clarification-block">
+                      <div className="section-heading">
+                        <span className="step-marker">?</span>
+                        <div>
+                          <h2>A few details first</h2>
+                          <p>Help Reify get the plan right before it starts.</p>
+                        </div>
+                      </div>
+                      {w.questions
+                        .filter((q) => !q.answer)
+                        .map((q) => (
+                          <div className="question" key={q.id}>
+                            <b>{q.question}</b>
+                            <details className="question-context">
+                              <summary>Why we ask</summary>
+                              <p>{q.reason}</p>
+                            </details>
+                            <label className="field" htmlFor={q.id}>
+                              {q.required
+                                ? "Required answer"
+                                : "Optional — acknowledge uncertainty"}
+                            </label>
+                            <input
+                              id={q.id}
+                              value={answers[q.id] ?? q.answer ?? ""}
+                              onChange={(e) =>
+                                setAnswers((a) => ({
+                                  ...a,
+                                  [q.id]: e.target.value,
+                                }))
+                              }
+                              placeholder={
+                                q.id === "when"
+                                  ? "2026-10-25T16:00:00-04:00"
+                                  : "Your answer"
+                              }
+                            />
+                          </div>
+                        ))}
+                      {w.questions.some((q) => !q.answer) && (
                         <button
-                          className="small"
-                          disabled={busy}
-                          onClick={() => void action("retry", { taskId: t.id })}
+                          className="primary"
+                          disabled={
+                            busy ||
+                            !w.questions.some(
+                              (q) => !q.answer && answers[q.id]?.trim(),
+                            )
+                          }
+                          onClick={() => void action("clarify", { answers })}
                         >
-                          Retry failed / interrupted text task
+                          {busy ? "Updating your plan..." : "Save answers"}
                         </button>
                       )}
-                    {t.status === "awaiting_approval" &&
-                      w.jobs?.[t.id]?.providerStatus !== "needs_approval" && (
-                        <div className="row">
-                          <button
-                            className="small"
-                            onClick={() => {
-                              void fetch(`/api/workflows/${w.id}/status`)
-                                .then((r) => r.json())
-                                .then((d) => {
-                                  if (!Array.isArray(d.tasks)) {
-                                    setError(
-                                      d.error || "Unable to refresh approval",
-                                    );
-                                    return;
-                                  }
-                                  const current = d.tasks.find(
-                                    (x: Task) => x.id === t.id,
-                                  );
-                                  if (!current) {
-                                    setError(
-                                      "Task no longer exists. Refresh the plan.",
-                                    );
-                                    return;
-                                  }
-                                  setW(d);
-                                  setApproval(current);
-                                })
-                                .catch(() =>
-                                  setError(
-                                    "Unable to refresh approval. Check connection and retry.",
-                                  ),
-                                );
-                            }}
+                    </div>
+                  )}
+                  <div className="plan-toolbar">
+                    <div>
+                      <h2>Your next steps</h2>
+                      <p className="muted">
+                        Review the steps. You stay in control.
+                      </p>
+                    </div>
+                    <div className="row">
+                      <button
+                        className="primary"
+                        disabled={
+                          busy ||
+                          w.paused ||
+                          w.questions.some((q) => q.required && !q.answer)
+                        }
+                        onClick={() => void action("advance")}
+                      >
+                        {busy ? "Working..." : "Run next steps"}
+                      </button>
+                      <button
+                        disabled={busy}
+                        onClick={() => void action("pause")}
+                      >
+                        {w.paused ? "Resume" : "Pause"}
+                      </button>
+                      {Object.values(w.jobs ?? {}).some(
+                        (j) => j.provider === "twinly",
+                      ) && (
+                        <button
+                          disabled={busy}
+                          onClick={() => void action("poll")}
+                        >
+                          Check provider progress
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  {w.paused && (
+                    <p className="inline-notice">
+                      Paused. Resume when you are ready.
+                    </p>
+                  )}
+                  {w.tasks.map((t) => (
+                    <div className={`task ${t.status}`} key={t.id}>
+                      <div className="row between">
+                        <button
+                          className="task-title"
+                          onClick={() => setSelected(t)}
+                        >
+                          <span className="task-indicator">
+                            {t.status === "completed" ? (
+                              <CheckCircle2 size={20} />
+                            ) : (
+                              <Circle size={20} />
+                            )}
+                          </span>
+                          {t.title}
+                          <ChevronRight size={15} />
+                        </button>
+                        <span className="status">
+                          {(
+                            {
+                              pending: "Not started",
+                              blocked: "Waiting",
+                              needs_clarification: "Needs details",
+                              awaiting_approval: "Review needed",
+                              running: "In progress",
+                              completed: "Done",
+                              failed: "Needs attention",
+                              awaiting_external_reply: "Awaiting reply",
+                              verifying: "Checking",
+                              skipped: "Skipped",
+                              cancelled: "Cancelled",
+                            } as Record<string, string>
+                          )[t.status] ?? t.status}
+                        </span>
+                      </div>
+                      <p className="muted task-caption">
+                        {(
+                          {
+                            generate_content: "Write with Gemma",
+                            research: "Research",
+                            send_message: "Send a message",
+                            call: "Make a call",
+                            speak: "Create voice audio",
+                            generate_image: "Create an image",
+                            twinly_chat: "Ask Twinly",
+                            read_messages: "Read a conversation",
+                            computer_action: "Suggest a screen action",
+                            browser_task: "Work on a website",
+                            twinly_task: "Work in an app",
+                            conditional: "Check a condition",
+                            manual: "Manual step",
+                          } as Record<string, string>
+                        )[t.kind] ?? "Task"}
+                        {t.dependsOn.length > 0 &&
+                          ` · After ${t.dependsOn.map((id) => w.tasks.find((x) => x.id === id)?.title ?? "previous step").join(", ")}`}
+                      </p>
+                      {t.blockReason && (
+                        <p className="muted" role="status">
+                          {t.blockReason}
+                        </p>
+                      )}
+                      {w.outputs?.[t.id] && (
+                        <details>
+                          <summary>View result</summary>
+                          <pre>{w.outputs[t.id].text}</pre>
+                          {w.outputs[t.id].mime?.startsWith("image/") && (
+                            <Image
+                              unoptimized
+                              width={640}
+                              height={400}
+                              style={{ maxWidth: "100%", height: "auto" }}
+                              alt="Generated image artifact"
+                              src={`/api/workflows/${w.id}/artifact?taskId=${encodeURIComponent(t.id)}&inline=1`}
+                            />
+                          )}
+                          {w.outputs[t.id].mime?.startsWith("audio/") && (
+                            <audio
+                              controls
+                              src={`/api/workflows/${w.id}/artifact?taskId=${encodeURIComponent(t.id)}&inline=1`}
+                            />
+                          )}
+                          <a
+                            href={`/api/workflows/${w.id}/artifact?taskId=${encodeURIComponent(t.id)}`}
                           >
-                            Review exact action
-                          </button>
+                            Download{" "}
+                            {w.outputs[t.id].mime ? "media" : "Markdown"}
+                          </a>
+                        </details>
+                      )}
+                      {t.kind === "generate_content" &&
+                        (t.status === "failed" || t.status === "running") && (
                           <button
                             className="small"
+                            disabled={busy}
                             onClick={() =>
-                              void action("deny", { taskId: t.id })
+                              void action("retry", { taskId: t.id })
                             }
                           >
-                            Deny
+                            Retry failed / interrupted text task
                           </button>
-                        </div>
-                      )}
-                    {w.jobs?.[t.id]?.provider === "twinly" &&
-                      w.jobs[t.id].externalId &&
-                      ["running", "awaiting_approval"].includes(t.status) && (
-                        <button
-                          className="small"
-                          disabled={busy}
-                          onClick={() =>
-                            void action("cancel-provider", { taskId: t.id })
-                          }
-                        >
-                          Request provider stop
-                        </button>
-                      )}
-                    {w.jobs?.[t.id]?.provider === "twinly" &&
-                      w.jobs[t.id].state === "uncertain" &&
-                      !w.jobs[t.id].externalId && (
-                        <button
-                          className="small"
-                          disabled={busy}
-                          onClick={() => {
-                            const externalId = window.prompt(
-                              "Inspect the existing job on Ajit's Mac. Only paste its UUID after checking its exact action and recipient match this task. This links the existing job; it does not retry.",
-                            );
-                            if (
-                              externalId &&
-                              window.confirm(
-                                "I checked that this is the same action and recipient in Twinly.",
+                        )}
+                      {t.status === "awaiting_approval" &&
+                        w.jobs?.[t.id]?.providerStatus !== "needs_approval" && (
+                          <div className="row">
+                            <button
+                              className="small"
+                              onClick={() => {
+                                void fetch(`/api/workflows/${w.id}/status`)
+                                  .then((r) => r.json())
+                                  .then((d) => {
+                                    if (!Array.isArray(d.tasks)) {
+                                      setError(
+                                        d.error || "Unable to refresh approval",
+                                      );
+                                      return;
+                                    }
+                                    const current = d.tasks.find(
+                                      (x: Task) => x.id === t.id,
+                                    );
+                                    if (!current) {
+                                      setError(
+                                        "Task no longer exists. Refresh the plan.",
+                                      );
+                                      return;
+                                    }
+                                    setW(d);
+                                    setApproval(current);
+                                  })
+                                  .catch(() =>
+                                    setError(
+                                      "Unable to refresh approval. Check connection and retry.",
+                                    ),
+                                  );
+                              }}
+                            >
+                              Review exact action
+                            </button>
+                            <button
+                              className="small"
+                              onClick={() =>
+                                void action("deny", { taskId: t.id })
+                              }
+                            >
+                              Deny
+                            </button>
+                          </div>
+                        )}
+                      {w.jobs?.[t.id]?.provider === "twinly" &&
+                        w.jobs[t.id].externalId &&
+                        ["running", "awaiting_approval"].includes(t.status) && (
+                          <button
+                            className="small"
+                            disabled={busy}
+                            onClick={() =>
+                              void action("cancel-provider", { taskId: t.id })
+                            }
+                          >
+                            Request provider stop
+                          </button>
+                        )}
+                      {w.jobs?.[t.id]?.provider === "twinly" &&
+                        w.jobs[t.id].state === "uncertain" &&
+                        !w.jobs[t.id].externalId && (
+                          <button
+                            className="small"
+                            disabled={busy}
+                            onClick={() => {
+                              const externalId = window.prompt(
+                                "Inspect the existing job on Ajit's Mac. Only paste its UUID after checking its exact action and recipient match this task. This links the existing job; it does not retry.",
+                              );
+                              if (
+                                externalId &&
+                                window.confirm(
+                                  "I checked that this is the same action and recipient in Twinly.",
+                                )
                               )
-                            )
-                              void action("link-provider-job", {
-                                taskId: t.id,
-                                externalId: externalId.trim(),
-                                acknowledged: true,
-                              });
-                          }}
-                        >
-                          Link existing Mac job
-                        </button>
-                      )}
-                    {t.status === "verifying" &&
-                      w.jobs?.[t.id]?.providerStatus === "done" &&
-                      w.jobs[t.id].state === "completed" && (
-                        <button
-                          className="small"
-                          disabled={busy}
-                          onClick={() => {
-                            const note = window.prompt(
-                              "Describe the real outcome you independently checked. This is a user confirmation, not automatic verification.",
-                            );
-                            if (note && note.trim().length >= 5)
-                              void action("confirm-result", {
-                                taskId: t.id,
-                                note,
-                                acknowledged: true,
-                              });
-                          }}
-                        >
-                          Record my outcome check
-                        </button>
-                      )}
-                    {w.mode === "fixture" &&
-                      t.status === "awaiting_external_reply" && (
-                        <div className="row">
-                          <span className="muted">Inject simulated reply:</span>
-                          {(["yes", "no", "maybe", "silence"] as const).map(
-                            (value) => (
-                              <button
-                                className="small"
-                                key={value}
-                                onClick={() =>
-                                  void action("reply", { taskId: t.id, value })
-                                }
-                              >
-                                {value}
-                              </button>
-                            ),
-                          )}
-                        </div>
-                      )}
-                  </div>
-                ))}
-              </section>
-              <section className="panel">
-                <div className="eyebrow">05 / Verify what happened</div>
-                <h2>Evidence over assumptions.</h2>
-                <div className="row">
-                  <span className="badge">
-                    {w.tasks.filter((t) => t.status === "completed").length}{" "}
-                    completed
-                  </span>
-                  <span className="badge">
-                    {
-                      w.tasks.filter(
-                        (t) => t.status === "awaiting_external_reply",
-                      ).length
-                    }{" "}
-                    awaiting reply
-                  </span>
-                  <span className="badge">
-                    {w.tasks.filter((t) => t.status === "failed").length} failed
-                  </span>
-                </div>
-                {selected && (
-                  <TaskEditor
-                    key={`${selected.id}-${w.version}`}
-                    task={selected}
-                    onClose={() => setSelected(undefined)}
-                    onSave={async (task) => {
-                      const result = await action("edit", {
-                        draft: {
-                          ...w,
-                          questions: w.questions.map((q) =>
-                            q.id === `${task.id}-screenshot` &&
-                            task.inputs.screenshot &&
-                            task.inputs.ownedScreen === true
-                              ? { ...q, answer: "Uploaded an owned screenshot" }
-                              : q,
-                          ),
-                          tasks: w.tasks.map((t) =>
-                            t.id === task.id ? task : t,
-                          ),
-                        },
-                      });
-                      if (result) setSelected(undefined);
-                    }}
-                  />
-                )}
-                {w.evidence.length === 0 ? (
-                  <p>
-                    No completed actions yet. Evidence appears after adapter
-                    verification.
-                  </p>
-                ) : (
-                  w.evidence.map((e, i) => (
-                    <div className="evidence" key={i}>
-                      <b>{e.summary}</b>
-                      <p className="muted">
-                        {e.provider} · {e.verification} · {e.externalId}
-                        <br />
-                        {e.checkedAt}
-                      </p>
+                                void action("link-provider-job", {
+                                  taskId: t.id,
+                                  externalId: externalId.trim(),
+                                  acknowledged: true,
+                                });
+                            }}
+                          >
+                            Link existing Mac job
+                          </button>
+                        )}
+                      {t.status === "verifying" &&
+                        w.jobs?.[t.id]?.providerStatus === "done" &&
+                        w.jobs[t.id].state === "completed" && (
+                          <button
+                            className="small"
+                            disabled={busy}
+                            onClick={() => {
+                              const note = window.prompt(
+                                "Describe the real outcome you independently checked. This is a user confirmation, not automatic verification.",
+                              );
+                              if (note && note.trim().length >= 5)
+                                void action("confirm-result", {
+                                  taskId: t.id,
+                                  note,
+                                  acknowledged: true,
+                                });
+                            }}
+                          >
+                            Record my outcome check
+                          </button>
+                        )}
+                      {w.mode === "fixture" &&
+                        t.status === "awaiting_external_reply" && (
+                          <div className="row">
+                            <span className="muted">
+                              Inject simulated reply:
+                            </span>
+                            {(["yes", "no", "maybe", "silence"] as const).map(
+                              (value) => (
+                                <button
+                                  className="small"
+                                  key={value}
+                                  onClick={() =>
+                                    void action("reply", {
+                                      taskId: t.id,
+                                      value,
+                                    })
+                                  }
+                                >
+                                  {value}
+                                </button>
+                              ),
+                            )}
+                          </div>
+                        )}
                     </div>
-                  ))
-                )}
-                <h3>Activity trail</h3>
-                <div className="audit">
-                  {w.audit
-                    .slice()
-                    .reverse()
-                    .map((a, i) => (
-                      <p key={i}>
-                        <span className="muted">
-                          {new Date(a.at).toLocaleTimeString()} ·{" "}
-                          {a.taskId ?? "workflow"}
-                        </span>
-                        <br />
-                        {a.summary}
-                      </p>
+                  ))}
+                </section>
+              )}
+              {view === "results" && (
+                <section className="panel results-panel">
+                  <h2>Results & activity</h2>
+                  <div className="row">
+                    <span className="badge">
+                      {w.tasks.filter((t) => t.status === "completed").length}{" "}
+                      steps finished
+                    </span>
+                    <span className="badge">
+                      {
+                        w.tasks.filter(
+                          (t) => t.status === "awaiting_external_reply",
+                        ).length
+                      }{" "}
+                      awaiting reply
+                    </span>
+                    <span className="badge">
+                      {w.tasks.filter((t) => t.status === "failed").length}{" "}
+                      failed
+                    </span>
+                  </div>
+                  {w.tasks
+                    .filter((t) => w.outputs?.[t.id])
+                    .map((t) => (
+                      <div className="result-card" key={t.id}>
+                        <h3>{t.title}</h3>{" "}
+                        {w.outputs?.[t.id] && (
+                          <details open>
+                            <summary>View result</summary>
+                            <pre>{w.outputs[t.id].text}</pre>
+                            {w.outputs[t.id].mime?.startsWith("image/") && (
+                              <Image
+                                unoptimized
+                                width={640}
+                                height={400}
+                                style={{ maxWidth: "100%", height: "auto" }}
+                                alt="Generated image artifact"
+                                src={`/api/workflows/${w.id}/artifact?taskId=${encodeURIComponent(t.id)}&inline=1`}
+                              />
+                            )}
+                            {w.outputs[t.id].mime?.startsWith("audio/") && (
+                              <audio
+                                controls
+                                src={`/api/workflows/${w.id}/artifact?taskId=${encodeURIComponent(t.id)}&inline=1`}
+                              />
+                            )}
+                            <a
+                              href={`/api/workflows/${w.id}/artifact?taskId=${encodeURIComponent(t.id)}`}
+                            >
+                              Download{" "}
+                              {w.outputs[t.id].mime ? "media" : "Markdown"}
+                            </a>
+                          </details>
+                        )}
+                      </div>
                     ))}
-                </div>
-              </section>
+                  {w.evidence.length === 0 ? (
+                    <p>Your results will appear here as steps finish.</p>
+                  ) : (
+                    w.evidence.map((e, i) => (
+                      <div className="evidence" key={i}>
+                        <b>{e.summary}</b>
+                        <p className="muted">
+                          {e.provider} · {e.verification} · {e.externalId}
+                          <br />
+                          {e.checkedAt}
+                        </p>
+                      </div>
+                    ))
+                  )}
+                  <details className="activity-details">
+                    <summary>Activity history</summary>
+                    <div className="audit">
+                      {w.audit
+                        .slice()
+                        .reverse()
+                        .map((a, i) => (
+                          <p key={i}>
+                            <span className="muted">
+                              {new Date(a.at).toLocaleTimeString()} ·{" "}
+                              {a.taskId ?? "workflow"}
+                            </span>
+                            <br />
+                            {a.summary}
+                          </p>
+                        ))}
+                    </div>
+                  </details>
+                </section>
+              )}
             </div>
+            {selected && (
+              <dialog
+                ref={editorDialog}
+                className="editor-drawer"
+                aria-label="Edit task"
+                onCancel={() => setSelected(undefined)}
+              >
+                <TaskEditor
+                  key={`${selected.id}-${w.version}`}
+                  task={selected}
+                  onClose={() => setSelected(undefined)}
+                  onSave={async (task) => {
+                    const result = await action("edit", {
+                      draft: {
+                        ...w,
+                        questions: w.questions.map((q) =>
+                          q.id === `${task.id}-screenshot` &&
+                          task.inputs.screenshot &&
+                          task.inputs.ownedScreen === true
+                            ? { ...q, answer: "Uploaded an owned screenshot" }
+                            : q,
+                        ),
+                        tasks: w.tasks.map((t) =>
+                          t.id === task.id ? task : t,
+                        ),
+                      },
+                    });
+                    if (result) setSelected(undefined);
+                    return !!result;
+                  }}
+                />
+              </dialog>
+            )}
           </>
         )}
         <div className="footer">
-          REIFY — From thought to action.{" "}
-          {w?.mode === "fixture"
-            ? "Explicit fixture - simulated external actions."
-            : "Local workspace - real text generation; external actions require verified tools and approval."}
+          <span>Reify</span>
+          <span>
+            {w?.mode === "fixture"
+              ? "Demo workspace · simulated actions"
+              : "Your plan. Your say."}
+          </span>
         </div>
       </main>
+      {connections && (
+        <dialog
+          ref={connectionsDialog}
+          onCancel={() => setConnections(false)}
+          className="connections-dialog"
+          aria-labelledby="connections-title"
+        >
+          <div className="row between">
+            <div>
+              <div className="eyebrow">Workspace settings</div>
+              <h2 id="connections-title">Connections</h2>
+            </div>
+            <button className="quiet" onClick={() => setConnections(false)}>
+              Close
+            </button>
+          </div>
+          <p>
+            Connect the tools your plan needs. External actions always need your
+            approval.
+          </p>
+          <CapabilityStatus items={health?.capabilities} expanded />
+          <p className="muted">
+            Credentials are configured privately on the server.{" "}
+            <a
+              href="https://github.com/parvathinalla/reify/blob/main/docs/TWINLY_SETUP.md"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Setup guide <ArrowRight size={12} style={{ display: "inline" }} />
+            </a>
+          </p>
+        </dialog>
+      )}
       <dialog ref={dialog} onCancel={() => setApproval(undefined)}>
         <h2>Approve this exact action?</h2>
         <span className="badge amber">
@@ -889,7 +1105,41 @@ export default function Home() {
             : "Exact action requires provider verification and approval"}
         </span>
         <p>{approval?.title}</p>
-        <pre>{JSON.stringify(approval?.inputs, null, 2)}</pre>
+        <dl className="approval-fields">
+          {Object.entries(approval?.inputs ?? {}).map(([key, value]) => (
+            <div key={key}>
+              <dt>{key.replace(/([A-Z])/g, " $1").replaceAll("_", " ")}</dt>
+              <dd>
+                {key === "screenshot" &&
+                typeof value === "string" &&
+                value.startsWith("data:image/") ? (
+                  <Image
+                    unoptimized
+                    width={400}
+                    height={200}
+                    style={{ objectFit: "contain", maxWidth: "100%" }}
+                    src={value}
+                    alt="Screen for the approved proposal"
+                  />
+                ) : typeof value === "boolean" ? (
+                  value ? (
+                    "Yes"
+                  ) : (
+                    "No"
+                  )
+                ) : typeof value === "object" ? (
+                  JSON.stringify(value)
+                ) : (
+                  String(value)
+                )}
+              </dd>
+            </div>
+          ))}
+        </dl>
+        <details className="advanced-inputs">
+          <summary>Technical action data</summary>
+          <pre>{JSON.stringify(approval?.inputs, null, 2)}</pre>
+        </details>
         <p className="muted">
           Approval binds these parameters to workflow version {w?.version}.
           Editing invalidates it.

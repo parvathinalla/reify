@@ -16,7 +16,13 @@ type TwinlyStatus = {
   liveVerified?: boolean;
   executionEnabled?: boolean;
 };
-export default function CapabilityStatus({ items }: { items?: Capability[] }) {
+export default function CapabilityStatus({
+  items,
+  expanded = false,
+}: {
+  items?: Capability[];
+  expanded?: boolean;
+}) {
   const [status, setStatus] = useState<TwinlyStatus>();
   const [busy, setBusy] = useState(false);
   const visible = status?.features
@@ -26,7 +32,7 @@ export default function CapabilityStatus({ items }: { items?: Capability[] }) {
       ]
     : items;
   return (
-    <details style={{ margin: "18px 0" }}>
+    <details open={expanded || undefined} style={{ margin: "18px 0" }}>
       <summary>Connected capabilities</summary>
       {visible?.map((item) => (
         <div className="task" key={item.id}>

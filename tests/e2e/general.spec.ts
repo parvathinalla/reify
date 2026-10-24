@@ -36,7 +36,7 @@ test("general plans have no room controls and unavailable tools stay blocked", a
   ).toBeVisible();
   await expect(page.getByLabel("Controlled demo inventory")).toHaveCount(0);
   await expect(page.getByText("Open room portal")).toHaveCount(0);
-  await page.getByRole("button", { name: "Advance ready tasks" }).click();
+  await page.getByRole("button", { name: "Run next steps" }).click();
   await expect(
     page
       .locator(".task.blocked")

@@ -4,7 +4,6 @@ import {
   ReactFlow,
   Background,
   Controls,
-  MiniMap,
   useNodesState,
   useEdgesState,
   Node,
@@ -33,7 +32,7 @@ function buildNodes(tasks: Task[]): Node[] {
       data: {
         label: `${t.kind === "conditional" ? "◇ " : ""}${t.title} · ${t.status.replaceAll("_", " ")}`,
       },
-      style: { borderColor: t.status === "completed" ? "#34d399" : "#655083" },
+      style: { borderColor: t.status === "completed" ? "#5a9c80" : "#d8d4e4" },
     };
   });
 }
@@ -44,7 +43,7 @@ function buildEdges(tasks: Task[]): Edge[] {
       source: id,
       target: t.id,
       label: t.condition ? t.condition.branch : undefined,
-      style: { stroke: "#a78bfa", strokeWidth: 2 },
+      style: { stroke: "#9983cb", strokeWidth: 2 },
     })),
   );
 }
@@ -100,11 +99,10 @@ export default function WorkflowGraph({
       }
       fitView
       fitViewOptions={{ padding: 0.18 }}
-      colorMode="dark"
+      colorMode="light"
     >
       <Background />
       <Controls />
-      <MiniMap nodeColor="#7751b2" maskColor="#0a0a0f99" />
     </ReactFlow>
   );
 }
