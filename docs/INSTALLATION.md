@@ -18,6 +18,8 @@ Alternatively, download GitHub's ZIP, extract it, open a terminal in the folder 
 
 The first launch installs exact lockfile dependencies with npm ci, creates a private .env.local if missing, and starts Next.js. Later launches reuse dependencies until the lockfile changes. Existing private settings are never overwritten. No provider actions happen during setup.
 
+The first install can take several minutes depending on your network and disk speed, especially on Windows. Later launches skip installation when the lockfile is unchanged.
+
 ## Add Gemma access
 
 Open .env.local and replace only the empty GEMINI_API_KEY value with your own key from [Google AI Studio](https://aistudio.google.com/apikey). Leave GEMMA_MODEL as gemma-4-26b-a4b-it. Save, stop the server, and run npm run launch again.

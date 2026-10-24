@@ -8,7 +8,7 @@ Solution: Reify offers three input formats, a server-side Gemma 4 interpretation
 
 Built with: Next.js App Router, React, TypeScript, Tailwind, React Flow, Zod, Google GenAI SDK, Vitest and Playwright.
 
-Actually demonstrated on Windows: labeled fixtures, clarification, graph editing, human approvals, persisted demo reservation and confirmation evidence. Live Gemma inference was not run because no key was supplied. Twinly official adapter exists and has mocked contract tests; live Mac integration is pending. No real messaging or university room reservation has been performed.
+Actually demonstrated on Windows: labeled fixtures, clarification, graph editing, human approvals, persisted demo reservation and confirmation evidence. A real Gemma 4 text interpretation succeeded locally; real image inference still needs verification. Twinly official adapter exists and has mocked contract tests; live Mac integration is pending. No real messaging or university room reservation has been performed.
 
 Challenges: untrusted model JSON, ambiguous dates, unknown replies, stale approvals, DAG validation, deduplication and honest provider status.
 

@@ -48,3 +48,15 @@ No live model call, Twinly action or deployment is included in these PASS result
 UI follow-up: removed the complete study-room example panel from the start screen and expanded the input panel. Browser demo tests now create their labeled fixture through the existing API rather than through the removed example cards. No execution/provider behavior changed.
 
 Gemma live follow-up: a direct text request to gemma-4-26b-a4b-it succeeded with the configured private key. Full parsing failed with the previous settings and generic error. After selecting the documented MINIMAL thinking level, the real /api/parse request for a synthetic college-laptop planning input succeeded in 10.2 seconds, returning 2 tasks and 1 clarification question (mode gemma). No user source, model response text, or key logged. Unit tests: 36 PASS; typecheck PASS. Real image inference is still not established by this check. Added distinct timeout/400/500/503 errors; the precise original provider failure was not retained, so its root cause is not proven.
+
+## Repository and easy-install release
+
+Public source repository created and pushed: https://github.com/parvathinalla/reify (main).
+Added cross-platform setup/launch/doctor, detailed installation/user/troubleshooting/roadmap guides, contributor/security docs, GitHub issue/PR templates and Linux/Windows/macOS CI.
+
+Actual local checks: npm run check PASS (lint, typecheck, 36 unit tests, production build); secret scan PASS for publishable files and existing history; private-environment preservation PASS byte-for-byte.
+The first browser rerun during a concurrent clean dependency install hit five 30-second scenario timeouts, with five checks passing. These are recorded as a failed run, not passing evidence. A clean-install launcher smoke test and subsequent browser rerun are being completed separately. CI status must be read from actual GitHub runs; no remote PASS is assumed.
+No credentials, .env.local, .data or private source uploads were published. The public .env.example was cleared before commit/push.
+Final installer evidence: clean Windows clone installed via npm run launch -- --port 3001, created a blank private environment, started successfully and returned HTTP 200. Its doctor check confirmed both provider keys absent and dependencies prepared; its 36 unit tests passed. Existing private-environment preservation was checked separately byte-for-byte. A warmed-server browser rerun with npm run test:e2e -- --timeout=120000 passed all 10 checks (29.8 seconds total; each scenario under 30 seconds).
+
+The first GitHub matrix run failed at npm ci: npm 11.19 detected missing optional @emnapi core/runtime entries from the older Windows-generated lockfile. Regenerated the lockfile with npm 11.19 in a directory without node_modules, then passed npm 11.19 ci --dry-run. Remote rerun results are recorded only after actual completion.
