@@ -35,7 +35,7 @@ The launcher installs exact lockfile dependencies on first run, creates private 
 
 ### Connect Gemma in one edit
 
-Open .env.local and add your own GEMINI_API_KEY from [Google AI Studio](https://aistudio.google.com/apikey). Keep GEMMA_MODEL set to gemma-4-26b-a4b-it. Save, stop the server, and run npm run launch again. Choose a format, enter text/upload an image, and click **Understand with Gemma 4**.
+Open .env.local and add your own GEMINI_API_KEY from [Google AI Studio](https://aistudio.google.com/apikey). Keep GEMMA_MODEL set to gemma-4-26b-a4b-it. Save, stop the server, and run npm run launch again. Choose a format, enter text/upload an image, and click **Create my plan**.
 
 Put real keys only in .env.local, never .env.example, chat or GitHub. The private file is ignored by Git. Verify access with npm run check:gemma when ready; it makes real text/image requests and can consume quota. Without a key, the UI and deterministic fixture tests remain usable; interpretation of your source requires model access.
 

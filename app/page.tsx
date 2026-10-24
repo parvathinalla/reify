@@ -203,11 +203,10 @@ export default function Home() {
               A little less planning. A little more done.
             </div>
             <h1>
-              What would you like
-              <br />
+              What would you like <br className="hero-break" />
               <span>to get done?</span>
             </h1>
-            <p>Bring your notes. Reify helps turn them into your next steps.</p>
+            <p>Add your notes. Review the plan. Approve external actions.</p>
           </div>
         )}
         {error && (
@@ -372,7 +371,7 @@ export default function Home() {
                   onClick={() => void parse()}
                 >
                   <Sparkles size={15} style={{ display: "inline" }} />{" "}
-                  {busy ? "Understanding…" : "Understand with Gemma 4"}
+                  {busy ? "Creating your plan…" : "Create my plan"}
                 </button>
                 <button
                   className="quiet"
@@ -382,8 +381,8 @@ export default function Home() {
                 </button>
               </div>
               <p className="muted">
-                Source content is sent to Google only when you select Gemma
-                parsing. Images are not saved to disk.
+                Powered by Gemma 4. Your input is sent to Google when you create
+                a plan. Images are not saved to disk.
               </p>
             </section>
           </div>

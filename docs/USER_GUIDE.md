@@ -4,7 +4,7 @@
 
 Choose To-do list, Flowchart or Rough notes. Type/paste content, upload a PNG/JPEG/WebP, or draw a flowchart. Images are limited to 10 MB and 40 megapixels and prepared safely before inference. On the canvas, connect handles and double-click nodes or edges to edit labels.
 
-Click Understand with Gemma 4. The server interprets your source and validates a draft. **This does not execute actions.**
+Click Create my plan. The server interprets your source and validates a draft. **This does not execute actions.**
 
 For example: “Research three laptops for college. Ask my budget and priorities before recommending one. Do not buy anything.” A real local test of this synthetic input returned two tasks and one question. Actual output depends on the input and model.
 
