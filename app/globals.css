@@ -14,7 +14,9 @@
 body {
   margin: 0;
   background:
-    radial-gradient(ellipse at 65% -20%, #34274738, transparent 55%), #0d0e14;
+    radial-gradient(ellipse at 26% 8%, #47237138 0%, transparent 48%),
+    radial-gradient(ellipse at 90% 45%, #203b5230 0%, transparent 48%), #0e0d17;
+  background-attachment: fixed;
 }
 button,
 input,
@@ -60,13 +62,16 @@ button:disabled {
   cursor: not-allowed;
 }
 button.primary {
-  background: #8053dc;
   color: #fff;
-  border-color: #a489f6;
-  box-shadow: 0 3px 16px #8558ed22;
+  background: linear-gradient(115deg, #9453e5, #7145d7);
+  border-color: #bc8dff88;
+  box-shadow:
+    0 4px 20px #8750e735,
+    inset 0 1px 0 #ffffff22;
 }
 button.primary:hover {
-  background: #885de3;
+  background: linear-gradient(115deg, #a065ed, #8052df);
+  box-shadow: 0 6px 24px #8750e750;
 }
 button.quiet {
   background: transparent;
@@ -87,8 +92,8 @@ header {
   align-items: center;
   justify-content: space-between;
   border-bottom: 1px solid var(--border);
-  background: #101016ed;
-  border-bottom-color: #242331;
+  background: #14101de8;
+  border-bottom-color: #44305266;
 }
 .brand {
   display: flex;
@@ -107,9 +112,11 @@ header {
   place-items: center;
   letter-spacing: 0;
   font-size: 18px;
-  background: linear-gradient(145deg, #a18aff, #7354d6);
   color: white;
-  box-shadow: 0 2px 14px #9774ef20;
+  background: linear-gradient(135deg, #c1a3ff, #8050ee 65%, #6435cf);
+  box-shadow:
+    0 0 24px #9c65ff35,
+    inset 0 1px 0 #ffffff50;
 }
 .row {
   display: flex;
@@ -136,12 +143,13 @@ header {
 }
 main {
   max-width: 1140px;
-  padding: 36px 28px 0;
   margin: auto;
+  padding: 24px 28px 0;
 }
 .hero {
   text-align: center;
-  padding: 38px 0 24px;
+  padding: 20px 0 20px;
+  position: relative;
 }
 .eyebrow {
   font-size: 11px;
@@ -179,36 +187,44 @@ p {
   color: #a69cb5;
 }
 .hero p {
-  font-size: 16px;
-  color: #a99bb9;
+  color: #b9aacb;
+  font-size: 15px;
 }
 .panel {
   border: 1px solid var(--border);
   border-radius: 16px;
   padding: 28px;
-  background: linear-gradient(140deg, #1b1925, #16151f);
-  border-color: #312c3e;
   box-shadow: 0 12px 40px #00000012;
+  background: linear-gradient(135deg, #211a2e, #19151f);
+  border-color: #43324e;
 }
 .composer {
   max-width: 730px;
   margin: 0 auto;
-  padding: 28px 32px;
+  position: relative;
+  background:
+    linear-gradient(135deg, #241b34, #191622 60%) padding-box,
+    linear-gradient(135deg, #8d59c1a0, #4f3a6670 40%, #4e6e8b70) border-box;
+  border: 1px solid transparent;
   box-shadow:
-    0 24px 80px #00000025,
-    0 1px 0 #ffffff03 inset;
+    0 20px 70px #00000038,
+    0 0 60px #8f4bdd09,
+    inset 0 1px 0 #ffffff05;
+  padding: 24px 30px;
 }
 .composer h2 {
   font-size: 16px;
   letter-spacing: -0.2px;
+  color: #f1e7ff;
 }
 .tabs {
   display: flex;
   gap: 6px;
-  margin: 20px 0;
-  padding: 5px;
   border-radius: 11px;
-  background: #111019;
+  background: #0e0b16a0;
+  padding: 5px;
+  border: 1px solid #33253f;
+  margin: 18px 0;
 }
 .tabs button {
   flex: 1;
@@ -217,13 +233,15 @@ p {
   border-color: transparent;
   padding: 11px 8px;
   font-weight: 500;
-  color: #9d91ad;
+  color: #b5a5c7;
 }
 .tabs button.active {
-  background: #2b233d;
-  color: #d7c6ff;
-  border-color: #534068;
-  box-shadow: 0 2px 7px #00000020;
+  background: linear-gradient(120deg, #613e8f, #45305e);
+  color: #f0e5ff;
+  border-color: #a47bd077;
+  box-shadow:
+    0 2px 10px #00000035,
+    inset 0 1px 0 #ffffff0c;
 }
 .field {
   display: block;
@@ -254,10 +272,11 @@ textarea {
   line-height: 1.7;
 }
 .composer textarea {
-  min-height: 165px;
   color: #eee8f5;
-  border-color: #3a3049;
-  background: #13111c;
+  background: #110e1a;
+  border-color: #574065;
+  min-height: 135px;
+  box-shadow: inset 0 2px 10px #00000018;
 }
 select {
   max-width: 280px;
@@ -385,8 +404,8 @@ select {
   color: #9e8ead;
 }
 .workspace-tabs button.active {
-  color: #c4adff;
-  border-bottom-color: #b699ff;
+  color: #d4b3ff;
+  border-bottom-color: #bb84ff;
 }
 .tab-count {
   font-size: 10px;
@@ -411,9 +430,9 @@ select {
   border-radius: 16px;
   padding: 26px 30px;
   margin-bottom: 28px;
-  background: linear-gradient(125deg, #201b2d, #191622);
-  border-color: #49375f;
   box-shadow: 0 12px 40px #00000012;
+  background: linear-gradient(120deg, #2b1d3d, #1d1729);
+  border-color: #6b4484;
 }
 .section-heading {
   display: flex;
@@ -486,9 +505,9 @@ select {
   margin: 10px 0;
   border: 1px solid var(--border);
   border-radius: 12px;
-  background: linear-gradient(120deg, #1b1824, #17151f);
-  border-color: #302939;
   box-shadow: 0 1px 0 #ffffff02 inset;
+  background: linear-gradient(110deg, #241a30, #1b1625);
+  border-color: #483252;
 }
 .task > .row:first-child {
   flex-wrap: nowrap;
@@ -742,6 +761,42 @@ audio {
   border-radius: 12px;
   background: #2c203c;
 }
+.hero .eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  border-radius: 30px;
+  border: 1px solid #76519e55;
+  background: #39234a40;
+  color: #c2a6e0;
+  font-size: 10px;
+  letter-spacing: 1.2px;
+}
+.hero .eyebrow::before {
+  content: "";
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #c3a1ff;
+  box-shadow: 0 0 12px #b48aff;
+}
+.tabs button svg {
+  color: #b596e4;
+}
+.tabs button.active svg {
+  color: #e6d3ff;
+}
+.composer select {
+  background: #1e162b;
+  border-color: #574065;
+}
+input:focus,
+textarea:focus,
+select:focus {
+  border-color: #ac7ce2;
+  box-shadow: 0 0 0 3px #a56be81a;
+}
 @media (max-width: 700px) {
   header {
     height: 64px;
@@ -929,9 +984,15 @@ textarea.action-field {
 /* Reify midnight: quiet depth, clear hierarchy, violet accents. */
 .hero h1 {
   color: #f4f1f9;
+  font-size: clamp(36px, 4vw, 50px);
+  letter-spacing: -2px;
+  margin: 16px 0 14px;
 }
 .hero h1 span {
-  color: #b7a0ff;
+  color: #c3a4ff;
+  background: linear-gradient(100deg, #e3c6ff, #b08bff 55%, #8eacff);
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 .react-flow {
   --xy-background-color: #13111b;
